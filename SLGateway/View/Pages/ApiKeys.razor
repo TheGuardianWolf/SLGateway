@@ -4,6 +4,7 @@
 @attribute [Authorize]
 @inject ILogger<ApiKeys> logger
 @inject IApiKeyService apiKeyService
+@inject IJSRuntime jsRuntime
 
 <PageTitle>API Keys</PageTitle>
 
@@ -17,6 +18,22 @@
 
 <div class="row">
     <div class="col-lg-5">
+        @if (LastApiKey is not null)
+        {
+            <div>
+                <h6>Your new API key</h6>
+                <div class="input-group">
+                    <input id="last_api_key" type="text" class="form-control" readonly value=@LastApiKey @onfocus=@(() => jsRuntime.InvokeVoidAsync("selectElementText", "last_api_key")) />
+                    <button class="btn btn-outline-secondary" @onclick="@(() => jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", LastApiKey))">
+                        <i class="oi oi-clipboard"></i>
+                    </button>
+                </div>
+                <div class="text-secondary mt-1">
+                    Make sure you save this key, it will not be shown again.
+                </div>
+            </div>
+            <hr class="my-4">
+        }
         <form onsubmit:preventDefault @onsubmit="() => SubmitForm()">
             <div class="mb-3">
                 <h6>Add an API Key</h6>
@@ -27,7 +44,7 @@
                 <div class="col-lg-6">
                     <input id="name" class="form-control" type="text" required maxlength="50" @bind="FormKeyName" />
                 </div>
-                <div class="text-secondary">
+                <div class="text-secondary mt-1">
                     You can specify the project name or purpose for this key.
                 </div>
             </fieldset>
@@ -95,7 +112,7 @@
 
     private string UserId { get; set; }
 
-    private IList<ApiKey> UserApiKeys { get; set; } = new List<ApiKey>();
+    private IEnumerable<ApiKey> UserApiKeys { get; set; } = new List<ApiKey>();
     
     private string FormKeyName { get; set; } = "";
     private HashSet<string> FormScopes { get; set; } = new HashSet<string>();
@@ -114,16 +131,22 @@
             
             if (apiKey is not null)
             {
-                UserApiKeys.Add(apiKey);
+                LastApiKey = apiKey.Key;
+                UserApiKeys = apiKeyService.GetForUser(UserId).ToList();
             }
         }
     }
 
-    private void RevokeKey(ApiKey key)
+    private async void RevokeKey(ApiKey key)
     {
-        if (apiKeyService.Invalidate(key.Key))
+        var confirm = await jsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to revoke this key? This action cannot be undone.");
+        if (confirm)
         {
-            UserApiKeys.Remove(key);
+            if (apiKeyService.Invalidate(key.Key))
+            {
+                UserApiKeys = apiKeyService.GetForUser(UserId);
+                StateHasChanged();
+            }
         }
     }
 
@@ -149,7 +172,7 @@
         {
             UserId = userId;
 
-            UserApiKeys = apiKeyService.GetForUser(userId).ToList();
+            UserApiKeys = apiKeyService.GetForUser(userId);
         }
         await base.OnInitializedAsync();
     }

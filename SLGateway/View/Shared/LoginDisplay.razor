@@ -1,7 +1,7 @@
 ﻿@using System.Security.Claims
 <AuthorizeView>
     <Authorized>
-        <a href="Identity/Account/Manage">Hello, @(Name)!</a>
+        <span>Hello, @(Name)!</span>
         <form method="post" action="auth/logout">
             <button type="submit" class="nav-link btn btn-link">Log out</button>
         </form>
