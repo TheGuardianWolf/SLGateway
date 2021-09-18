@@ -1,0 +1,61 @@
+﻿@page "/about"
+
+<PageTitle>About</PageTitle>
+
+
+<h1>About</h1>
+
+<h3>Purpose</h3>
+
+<p>
+	I created this gateway to deal with one specific problem; the awkwardness of writing LSL. For most people, LSL is the main way to add life to SL objects. Yet the language
+	has stayed stagnant, with more functions being added but overall being no easier to use.
+</p>
+<p>
+	For the longest time, programmers of other languages have had access to continually improving tools. This particular server was created in under 3 days, a feat I would 
+	not dream of just 5 years ago. It is quite easy to anyone that has used another language that LSL has not kept up with the times.
+</p>
+<p>
+	I re-entered SL with this purpose, creating what will be my final LSL script (if this works) so that I can make LSL specific function calls over HTTP rather than in the script itself. 
+	So far, I have exported 13 functions along with 2 event handlers from SL and it seems to be quite manageable. I have no idea if my huge "if-else" switch will be scalable to all 100+ 
+	LSL functions, but we shall see.
+</p>
+
+<h3>Technical Details</h3>
+
+<h5>Request and Response</h5>
+
+<p>
+	Diagrams to come later here.
+</p>
+<p>
+	I have implemented two servers to create this gateway. One server is on the SL object, and the other is this one you are on now. The SL object (SLO) server is sent commands via 
+	HTTP Post with a JSON Array. Commands conform to a very simple specification. We start with the command code (a shared mapping of integer to LSL function), then each argument 
+	for that LSL function. Vectors are flattened into three floats, as they are not JSON compatible in their raw form.
+</p>
+<p>
+	Command responses are sent back to the gateway, this time in a JSON object. The server is able to manipulate objects without much difficulty unlike on the LSL side. An API 
+	consumer could, with this scheme, push the command (Event) "llGetOwner" to this server, which will forward it to the SLO for execution. The result is returned via JSON object
+	to the consumer.
+</p>
+<p>
+	Events that occur in the SLO are immediately broadcast to this gateway and stored in a queue. The gateway has a limit of 100 events per object before it starts dropping events
+	if they are not retrieved by an API consumer. Some events (such as llListen) must be activated via commands first before they send back events.
+</p>
+
+<h5>Security</h5>
+
+<p>
+	With any online tool, security comes into play. Communication from the SLO to the gateway utilises API keys that are issued per registered user. Multiple keys may be active
+	for one user. It is recommended to use at least one API key per project. You may choose to use more for fine grained control of the products you are distributing. Objects 
+	will be registed with the gateway when their URLs change, and per hour. If objects are not periodically renewed, their registrations will expire.
+</p>
+<p>
+	Communication from the gateway to SLO utilises a random token established from the object during the registration. This identifies the gateway as being the server that the
+	object originally registered with. Token rotation happens periodically, and every time the SLO url changes. Additionally the gateway will check the URL as belonging to the
+	SL grid.
+</p>
+
+@code {
+
+}

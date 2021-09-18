@@ -1,0 +1,12 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <a href="Identity/Account/Manage">Manage profile</a>
+        <form method="post" action="auth/logout">
+            <button type="submit" class="nav-link btn btn-link">Log out</button>
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <a href="auth/logout">Register</a>
+        <a href="auth/login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>

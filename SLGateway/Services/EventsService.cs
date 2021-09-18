@@ -1,0 +1,129 @@
+﻿using CsvHelper;
+using CsvHelper.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
+using SLGateway.Data;
+using SLGateway.Repositories;
+using SLGatewayCore;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace SLGateway.Services
+{
+    public interface IEventsService
+    {
+        Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs);
+        bool AddEventForObject(Guid objectId, ObjectEvent evt);
+        Task<CommandEventResponse> PushEventToObject(Guid objectId, CommandEvent evt);
+    }
+
+    public class EventsService : IEventsService
+    {
+        private readonly ILogger _logger;
+        private readonly IObjectRegistrationService _ors;
+        private readonly IObjectEventsRepository _oer;
+        private readonly HttpClient _httpClient;
+
+        public EventsService(ILogger<EventsService> logger, IObjectRegistrationService ors, IHttpClientFactory httpClientFactory, IObjectEventsRepository oer)
+        {
+            _ors = ors;
+            _oer = oer;
+            _httpClient = httpClientFactory.CreateClient();
+            _logger = logger;
+        }
+
+        public async Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs)
+        {
+            if (!_ors.IsRegistered(objectId))
+            {
+                return null;
+            }
+
+            var queue = _oer.GetEventQueue(objectId);
+
+            if (queue == null)
+            {
+                return null;
+            }
+
+            return await Task.Run(() =>
+            {
+                var events = new List<ObjectEvent>();
+                var hasItem = queue.TryTake(out var firstItem, waitForMs);
+                if (hasItem)
+                {
+                    events.Add(firstItem);
+                    if (queue.Count > 0)
+                    {
+                        for (var i = 0; i < queue.Count; i++)
+                        {
+                            var success = queue.TryTake(out var item, 100);
+                            if (success)
+                            {
+                                events.Add(item);
+                            }
+                        }
+                    }
+                }
+                return events;
+            });
+        }
+
+        public bool AddEventForObject(Guid objectId, ObjectEvent evt)
+        {
+            if (!_ors.IsRegistered(objectId))
+            {
+                return false;
+            }
+
+            return _oer.Create(objectId, evt);
+        }
+
+        public async Task<CommandEventResponse> PushEventToObject(Guid objectId, CommandEvent evt)
+        {
+            var obj = _ors.GetObject(objectId);
+            if (obj is null)
+            {
+                return null;
+            }
+
+            var responseContent = new List<dynamic> { (int)evt.Code };
+            responseContent.AddRange(evt.Args);
+
+            using var requestMessage = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                Content = JsonContent.Create(responseContent),
+                RequestUri = new Uri(obj.Url)
+            };
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, obj.Token);
+       
+            var response = await _httpClient.SendAsync(requestMessage);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<dynamic>();
+                return new CommandEventResponse
+                {
+                    Data = data,
+                    HttpStatus = (int)response.StatusCode
+                };
+            }
+
+            return new CommandEventResponse
+            {
+                Data = null,
+                HttpStatus = (int)response.StatusCode
+            };
+        }
+    }
+}

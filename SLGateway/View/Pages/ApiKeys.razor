@@ -1,0 +1,18 @@
+﻿@page "/apikeys"
+@attribute [Authorize]
+@inject ILogger<ApiKeys> logger
+
+<PageTitle>API Keys</PageTitle>
+
+<h1>API Keys</h1>
+
+<p>You may generate or manage your API keys here.</p>
+
+<p>You must keep your API keys safe, unauthorized use by a third party may damage your application, cause your key to be removed, or cause your account to be suspended.</p>
+
+@code {
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+	}
+}
