@@ -47,6 +47,11 @@ namespace SLGateway.Repositories
 
         public bool Create(ApiKey key)
         {
+            if (string.IsNullOrEmpty(key.Key))
+            {
+                return false;
+            }
+
             if (_apiKeys.FirstOrDefault(x => x.Key == key.Key) is not null)
             {
                 return false;

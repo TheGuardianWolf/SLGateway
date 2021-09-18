@@ -12,17 +12,16 @@ namespace SLGateway.Data
 
     public static class ApiRoles
     {
-        public const string Object = "Object";
+        public const string Object = "object";
+        public const string Client = "client";
     }
 
     public class ApiKey : IApiKey
     {
-        public string Key { get; }
-        public string Name { get; }
-        public DateTime CreatedUtc { get; }
-
-        public string OwnerName { get; }
-
-        public IReadOnlyCollection<Claim> Claims { get; }
+        public string Key { get; set; }
+        public string Name { get; set; }
+        public DateTime CreatedUtc { get; set; }
+        public string OwnerName { get; set; }
+        public IReadOnlyCollection<Claim> Claims { get; set; }
     }
 }

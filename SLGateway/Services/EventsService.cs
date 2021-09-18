@@ -105,7 +105,11 @@ namespace SLGateway.Services
                 Content = JsonContent.Create(responseContent),
                 RequestUri = new Uri(obj.Url)
             };
+            // This doesn't actually do anything
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, obj.Token);
+
+            // Unfortunately SL can't read the auth header so we use this instead
+            requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("SLOToken", obj.Token));
        
             var response = await _httpClient.SendAsync(requestMessage);
 

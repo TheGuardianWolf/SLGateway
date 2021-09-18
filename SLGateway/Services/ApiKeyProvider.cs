@@ -21,7 +21,10 @@ namespace SLGateway.Services
 		{
 			try
 			{
-                return Task.FromResult((IApiKey)_apiKeyRepository.Get(key));
+				var apiKey = _apiKeyRepository.Get(key);
+				_logger.LogTrace("Api key requested: {key}, returned: {apiKey}", key, apiKey?.Key);
+
+				return Task.FromResult((IApiKey)apiKey);
 			}
 			catch (Exception ex)
 			{

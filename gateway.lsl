@@ -1,8 +1,8 @@
-key API_KEY = NULL_KEY;
+string API_KEY = "L2quvgihmJke7xYx6EVF";
 
 integer DEBUG = TRUE;
 float HEARTBEAT_INTERVAL_SEC = 3600; // 1 hour
-integer TOKEN_LENGTH = 12
+integer TOKEN_LENGTH = 12;
 
 integer registered = FALSE;
 key objectId;
@@ -12,7 +12,7 @@ key urlRequestId;
 key eventRequestId;
 string objectUrl;
 string currentToken;
-string serverApiUrl = "https://pixelcollider.net/api";
+string serverApiUrl = "http://pixelcollider.net/api";
 
 debugSay(string text)
 {
@@ -22,10 +22,15 @@ debugSay(string text)
     }
 }
 
+integer startswith(string haystack, string needle) // http://wiki.secondlife.com/wiki/llSubStringIndex
+{
+    return llDeleteSubString(haystack, llStringLength(needle), 0x7FFFFFF0) == needle;
+}
+
 // From http://wiki.secondlife.com/wiki/Random_Password_Generator
 string generateToken()
 {
-    string length = TOKEN_LENGTH;
+    integer length = TOKEN_LENGTH;
     string CharSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoppqrstuvwxyz123456789_";    // omitting confusable characters
     string password;
     integer CharSetLen = llStringLength(CharSet);
@@ -41,27 +46,29 @@ string generateToken()
 
 integer verifyToken(key requestId)
 {
-    string authHeader = llGetHttpHeader(requestId, "authorization");
-    string authArgs = llParseString2List(authHeader, [" "], []);
+    // I don't know why SL doesn't accept the Authorization header but here we are.
+    string userAgents = llGetHTTPHeader(requestId, "user-agent");
+    debugSay("Auth header received: " + userAgents);
 
-    if (llGetListLength(authArgs) != 2)
+    list userAgentList = llParseString2List(userAgents, [" "], []);
+
+    integer i = llGetListLength(userAgentList);
+    while (i--)
     {
-        return FALSE;
-    }
+        list productInfo = llParseString2List(llList2String(userAgentList, i), ["/"], []);
 
-    string authType = llList2String(authArgs, 0);
-    if (llToLower(authType) != "bearer")
-    {
-        return FALSE;
+        if (llGetListLength(productInfo) == 2)
+        {
+            if (llToLower(llList2String(productInfo, 0)) == "slotoken")
+            {
+                if (llList2String(productInfo, 1) == currentToken)
+                {
+                    return TRUE;
+                }
+            }
+        }
     }
-
-    string authToken = llList2String(authArgs, 1);
-    if (authToken != currentToken)
-    {
-        return FALSE;
-    }
-
-    return TRUE;
+    return FALSE;
 }
 
 
@@ -133,7 +140,7 @@ init()
 registerWithGateway(string objectUrl)
 {
     currentToken = generateToken();
-    string jsonData = llList2Json(JSON_OBJECT, ["url", objectUrl, "token", currentToken]);
+    string jsonData = llList2Json(JSON_OBJECT, ["url", objectUrl, "token", currentToken, "apiKey", API_KEY]);
     regRequestId = post("object/register/" + (string)objectId, jsonData);
 }
 
@@ -407,12 +414,13 @@ default
 {
     state_entry()
     {
-        if (!API_KEY)
+        if (API_KEY)
         {
-            llSay(0, "Warning: Object is not initialised due to missing API_KEY! Please edit the script and set this on the first line.")
-        }
-        else {
             init();
+        }
+        else
+        {
+            llSay(0, "Warning: Object is not initialised due to missing API_KEY! Please edit the script and set this on the first line.");
         }
     }
 
@@ -481,6 +489,14 @@ default
 
     changed(integer change)
     {
+        if (change & (CHANGED_OWNER | CHANGED_INVENTORY))
+        {
+            llReleaseURL(objectUrl);
+            objectUrl = "";
+
+            init();
+        }
+
         if (change & (CHANGED_REGION_START | CHANGED_REGION | CHANGED_TELEPORT))
         {
             // Reinitialise in this case as url is invalidated
