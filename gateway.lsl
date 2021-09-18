@@ -12,7 +12,7 @@ key urlRequestId;
 key eventRequestId;
 string objectUrl;
 string currentToken;
-string serverApiUrl = "https://slgateway.herokuapp.com/api";
+string serverApiUrl = "https://pixelcollider.net/api";
 
 debugSay(string text)
 {
