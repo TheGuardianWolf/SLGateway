@@ -8,24 +8,26 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace SLGateway.Controllers
 {
-    [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)]
     [ApiController]
     [Route("api/[controller]")]
     public class EventsController : ControllerBase
     {
         private readonly ILogger<EventsController> _logger;
         private readonly IEventsService _es;
+        private readonly IObjectRegistrationService _objectRegistrationService;
 
-        public EventsController(ILogger<EventsController> logger, IEventsService eventsService)
+        public EventsController(ILogger<EventsController> logger, IEventsService eventsService, IObjectRegistrationService objectRegistrationService)
         {
             _logger = logger;
             _es = eventsService;
         }
 
+        [Authorize(ApiKeyAuthenticationPolicy.Client)]
         [Route("longpoll/{objectId}")]
         [HttpGet]
         public async Task<IActionResult> LongPoll(Guid objectId)
@@ -36,12 +38,21 @@ namespace SLGateway.Controllers
                 return BadRequest();
             }
 
+            // Check ownership of object
+            var obj = _objectRegistrationService.GetObject(objectId);
+            if (obj?.UserId != User.Claims.GetValue(ClaimTypes.NameIdentifier))
+            {
+                _logger.LogWarning("Current user ({currentUserId}) does not match object user ({objectUserId})", User.Identity?.Name, obj?.UserId);
+                return Forbid();
+            }
+
             var events = await _es.WaitForObjectEvents(objectId, 60 * 1000);
             _logger.LogTrace("Collected {count} events for object {objectId}", events.Count(), objectId);
 
             return Ok(events);
         }
 
+        [Authorize(ApiKeyAuthenticationPolicy.Client)]
         [Route("push/{objectId}")]
         [HttpPost]
         public async Task<IActionResult> Push(Guid objectId, CommandEvent evt)
@@ -50,6 +61,14 @@ namespace SLGateway.Controllers
             {
                 _logger.LogWarning("Push event requested with invalid objectId");
                 return BadRequest();
+            }
+
+            // Check ownership of object
+            var obj = _objectRegistrationService.GetObject(objectId);
+            if (obj?.UserId != User.Claims.GetValue(ClaimTypes.NameIdentifier))
+            {
+                _logger.LogWarning("Current user ({currentUserId}) does not match object user ({objectUserId})", User.Identity?.Name, obj?.UserId);
+                return Forbid();
             }
 
             if (!Enum.IsDefined(typeof(CommandEventCode), evt.Code))
@@ -69,6 +88,7 @@ namespace SLGateway.Controllers
             return Ok(response.Data);
         }
 
+        [Authorize(ApiKeyAuthenticationPolicy.Object)]
         [Route("receive/{objectId}")]
         [HttpPost]
         public IActionResult Receive(Guid objectId, ObjectEvent evt)
@@ -77,6 +97,12 @@ namespace SLGateway.Controllers
             {
                 _logger.LogWarning("Receive event requested with invalid objectId");
                 return BadRequest();
+            }
+
+            // Check object ownership
+            if (_objectRegistrationService.GetObject(objectId)?.ApiKey != this.GetApiKey())
+            {
+                return Forbid();
             }
 
             if (!Enum.IsDefined(typeof(ObjectEventCode), evt.Code))

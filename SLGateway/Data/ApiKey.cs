@@ -2,9 +2,16 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 
 namespace SLGateway.Data
 {
+    public static class ApiKeyAuthenticationPolicy
+    {
+        public const string Object = "ApiKeyObject";
+        public const string Client = "ApiKeyClient";
+    }
+
     public static class ApiKeyAuthenticationDefaults
     {
         public const string BearerAuthenticationScheme = "Bearer";
@@ -21,7 +28,9 @@ namespace SLGateway.Data
         public string Key { get; set; }
         public string Name { get; set; }
         public DateTime CreatedUtc { get; set; }
-        public string OwnerName { get; set; }
+        [JsonIgnore]
+        public string OwnerName => UserId; // Aliased for interface
+        public string UserId { get; set; }
         public IReadOnlyCollection<Claim> Claims { get; set; }
     }
 }

@@ -95,7 +95,7 @@ namespace SLGateway.Services
                 Key = key,
                 CreatedUtc = DateTime.UtcNow,
                 Name = commonName,
-                OwnerName = username,
+                UserId = username,
                 Claims = claimsList
             };
 

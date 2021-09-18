@@ -6,6 +6,7 @@ EXPOSE 80
 EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+RUN apt-get update && apt-get install nodejs -y
 WORKDIR /src
 COPY ["SLGateway.heroku.sln", "."]
 COPY ["SLGatewayCore/SLGatewayCore.csproj", "./SLGatewayCore/SLGatewayCore.csproj"]

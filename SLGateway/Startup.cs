@@ -23,6 +23,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using AspNetCore.Authentication.ApiKey;
 using SLGateway.Data;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 namespace SLGateway
 {
@@ -104,6 +105,11 @@ namespace SLGateway
                             return Task.CompletedTask;
                         }
                     };
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        NameClaimType = "name"
+                    };
                 })
                 .AddApiKeyInAuthorizationHeader<ApiKeyService>(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, options =>
                 {
@@ -111,6 +117,15 @@ namespace SLGateway
                     options.IgnoreAuthenticationIfAllowAnonymous = true;
                     options.SuppressWWWAuthenticateHeader = true;
                 });
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy(ApiKeyAuthenticationPolicy.Object, policy => policy
+                    .AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)
+                    .RequireClaim(ApiKeyClaims.Object, bool.TrueString));
+                options.AddPolicy(ApiKeyAuthenticationPolicy.Client, policy => policy
+                    .AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)
+                    .RequireClaim(ApiKeyClaims.Client, bool.TrueString));
+            });
 
             services.AddHttpClient();
             services.AddSingleton<IObjectEventsRepository, ObjectEventsRepository>();
@@ -161,13 +176,16 @@ namespace SLGateway
             {
                 app.UseDeveloperExceptionPage();
             }
+            else
+            {
+                app.UseHttpsRedirection();
+            }
 
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SL Gateway v1"));
 
             app.UseSerilogRequestLogging();
 
-            //app.UseHttpsRedirection();
             app.UseCookiePolicy();
 
             app.UseStaticFiles();

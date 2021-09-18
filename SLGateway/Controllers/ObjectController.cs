@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 
 namespace SLGateway.Controllers
 {
-    [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)]
     [ApiController]
     [Route("api/[controller]")]
     public class ObjectController : ControllerBase
@@ -27,6 +26,7 @@ namespace SLGateway.Controllers
             _allowedUrlHostname = configuration.GetValue<string>("SecondLifeHost");
         }
 
+        [Authorize(ApiKeyAuthenticationPolicy.Object)]
         [Route("register/{id}")]
         [HttpPost]
         public IActionResult Register(Guid id, ObjectRegistration reg)
@@ -60,10 +60,17 @@ namespace SLGateway.Controllers
             return Ok();
         }
 
+        [Authorize(ApiKeyAuthenticationPolicy.Object)]
         [Route("register/{id}")]
         [HttpDelete]
         public IActionResult Deregister(Guid id)
         {
+            // Check object ownership
+            if (_ors.GetObject(id)?.ApiKey != this.GetApiKey())
+            {
+                return Forbid();
+            }
+
             if (!_ors.Deregister(id))
             {
                 _logger.LogWarning("Object {id} could not be deregistered", id);
