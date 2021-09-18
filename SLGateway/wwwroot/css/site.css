@@ -8,6 +8,10 @@ h1:focus {
     outline: none;
 }
 
+h6 {
+    font-weight: 600;
+}
+
 a, .btn-link {
     color: #0077cc;
 }

@@ -69,6 +69,8 @@ namespace SLGateway
                     // Configure the scope
                     options.Scope.Clear();
                     options.Scope.Add("openid");
+                    options.Scope.Add("profile");
+                    options.Scope.Add("email");
 
                     // Set the callback path, so Auth0 will call back to http://localhost:3000/callback
                     // Also ensure that you have added the URL as an Allowed Callback URL in your Auth0 dashboard
@@ -93,7 +95,7 @@ namespace SLGateway
                                     var request = context.Request;
                                     postLogoutUri = request.Scheme + "://" + request.Host + request.PathBase + postLogoutUri;
                                 }
-                                logoutUri += $"&returnTo={ Uri.EscapeDataString(postLogoutUri)}";
+                                logoutUri += $"&returnTo={ Uri.EscapeDataString(postLogoutUri) }";
                             }
 
                             context.Response.Redirect(logoutUri);
@@ -103,7 +105,7 @@ namespace SLGateway
                         }
                     };
                 })
-                .AddApiKeyInAuthorizationHeader<ApiKeyProvider>(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, options =>
+                .AddApiKeyInAuthorizationHeader<ApiKeyService>(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, options =>
                 {
                     options.KeyName = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme;
                     options.IgnoreAuthenticationIfAllowAnonymous = true;
@@ -116,6 +118,7 @@ namespace SLGateway
             services.AddSingleton<IApiKeyRepository, ApiKeyRepository>();
             services.AddScoped<IEventsService, EventsService>();
             services.AddScoped<IObjectRegistrationService, ObjectRegistrationService>();
+            services.AddScoped<IApiKeyService, ApiKeyService>();
             services.AddHostedService<StorageManagerHostedService>();
 
             services.AddRazorPages(options =>
@@ -130,7 +133,7 @@ namespace SLGateway
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "SL Gateway", Version = "v1" });
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header using the Bearer scheme",
+                    Description = "JWT Authorization header using the Bearer scheme (API Key)",
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer"
                 });

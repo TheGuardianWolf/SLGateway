@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SLGateway.Data;
 using SLGateway.Services;
@@ -17,11 +18,13 @@ namespace SLGateway.Controllers
     {
         private readonly IObjectRegistrationService _ors;
         private readonly ILogger _logger;
+        private readonly string _allowedUrlHostname;
 
-        public ObjectController(ILogger<ObjectController> logger, IObjectRegistrationService ors)
+        public ObjectController(IConfiguration configuration, ILogger<ObjectController> logger, IObjectRegistrationService ors)
         {
             _logger = logger;
             _ors = ors;
+            _allowedUrlHostname = configuration.GetValue<string>("SecondLifeHost");
         }
 
         [Route("register/{id}")]
@@ -30,6 +33,14 @@ namespace SLGateway.Controllers
         {
             if (reg == null || string.IsNullOrWhiteSpace(reg.Token) || string.IsNullOrWhiteSpace(reg.Url))
             {
+                return BadRequest();
+            }
+
+            var url = new Uri(reg.Url);
+            if (!url.Host.EndsWith(_allowedUrlHostname))
+            {
+                // LL say it is not recommended to check hostname, but I would rather not risk spamming another url
+                _logger.LogDebug("Registered url for {objectId} does end with required hostname {host}", id, _allowedUrlHostname);
                 return BadRequest();
             }
 

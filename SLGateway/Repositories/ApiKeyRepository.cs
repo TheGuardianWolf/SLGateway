@@ -12,37 +12,39 @@ namespace SLGateway.Repositories
         IEnumerable<ApiKey> GetAll();
         bool Create(ApiKey key);
         IEnumerable<ApiKey> GetKeysForOwner(string userId);
+        bool Delete(string key);
         void InjectData(IEnumerable<ApiKey> apiKeys);
     }
 
     public class ApiKeyRepository : IApiKeyRepository
     {
-        private ConcurrentBag<ApiKey> _apiKeys = new ConcurrentBag<ApiKey>();
+        private ConcurrentDictionary<string, ApiKey> _apiKeys = new ConcurrentDictionary<string, ApiKey>();
 
         // Used for the moment with json data
         public void InjectData(IEnumerable<ApiKey> apiKeys)
         {
-            var newKeys = new ConcurrentBag<ApiKey>();
+            var newKeys = new ConcurrentDictionary<string, ApiKey>();
             foreach (var key in apiKeys)
             {
-                newKeys.Add(key);
+                newKeys.TryAdd(key.Key, key);
             }
             _apiKeys = newKeys;
         }
 
         public IEnumerable<ApiKey> GetKeysForOwner(string ownerName)
         {
-            return _apiKeys.Where(x => x.OwnerName == ownerName);
+            return _apiKeys.Values.Where(x => x.OwnerName == ownerName);
         }
 
         public ApiKey Get(string key)
         {
-            return _apiKeys.FirstOrDefault(x => x.Key.Equals(key, StringComparison.Ordinal));
+            _apiKeys.TryGetValue(key, out var apiKey);
+            return apiKey;
         }
 
         public IEnumerable<ApiKey> GetAll()
         {
-            return _apiKeys.ToList();
+            return _apiKeys.Values.ToList();
         }
 
         public bool Create(ApiKey key)
@@ -52,13 +54,27 @@ namespace SLGateway.Repositories
                 return false;
             }
 
-            if (_apiKeys.FirstOrDefault(x => x.Key == key.Key) is not null)
+            if (_apiKeys.ContainsKey(key.Key))
             {
                 return false;
             }
 
-            _apiKeys.Add(key);
-            return true;
+            return _apiKeys.TryAdd(key.Key, key);
+        }
+
+        public bool Delete(string key)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                return false;
+            }
+
+            if (!_apiKeys.ContainsKey(key))
+            {
+                return false;
+            }
+
+            return _apiKeys.TryRemove(key, out var _);
         }
     }
 }

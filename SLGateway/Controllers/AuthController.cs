@@ -18,6 +18,7 @@ namespace SLGateway.Controllers
         }
 
         [Route("logout")]
+        [HttpPost]
         [Authorize]
         public async Task Logout()
         {

@@ -1,18 +1,156 @@
 ﻿@page "/apikeys"
+@using SLGateway.Data
+@using System.Security.Claims
 @attribute [Authorize]
 @inject ILogger<ApiKeys> logger
+@inject IApiKeyService apiKeyService
 
 <PageTitle>API Keys</PageTitle>
 
-<h1>API Keys</h1>
+<div class="row">
+    <h1>API Keys</h1>
 
-<p>You may generate or manage your API keys here.</p>
+    <p>You may generate or manage your API keys here.</p>
 
-<p>You must keep your API keys safe, unauthorized use by a third party may damage your application, cause your key to be removed, or cause your account to be suspended.</p>
+    <p>You must keep your API keys safe, unauthorized use by a third party may damage your application, cause your key to be removed, or cause your account to be suspended.</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-5">
+        <form onsubmit:preventDefault @onsubmit="() => SubmitForm()">
+            <div class="mb-3">
+                <h6>Add an API Key</h6>
+                <span>Enter the name of your object or application to create a new key.</span>
+            </div>
+            <fieldset class="mb-3">
+                <label for="name" class="form-label fw-bold">Key name</label>
+                <div class="col-lg-6">
+                    <input id="name" class="form-control" type="text" required maxlength="50" @bind="FormKeyName" />
+                </div>
+                <div class="text-secondary">
+                    You can specify the project name or purpose for this key.
+                </div>
+            </fieldset>
+            <div class="mb-3">
+                <h6>Select scopes</h6>
+                <span>These options determine what objects or applications using this API key has access to.</span>
+            </div>
+            <fieldset class="form-check mb-3">
+                <input id="scope_object_all" type="checkbox" class="form-check-input" checked=@FormScopes.Contains(ApiKeyClaims.Object) @onchange="(e) => ToggleFormScope(ApiKeyClaims.Object, !(bool)e.Value)" />
+                <label for="scope_object_all" class="form-check-label fw-bold">object</label>
+                <div class="text-secondary">
+                    Grants access to API methods that registers SLOs and submit SLO events.
+                </div>
+            </fieldset>
+            <fieldset class="form-check mb-3">
+                <input id="scope_client_all" type="checkbox" class="form-check-input" checked=@FormScopes.Contains(ApiKeyClaims.Client) @onchange="(e) => ToggleFormScope(ApiKeyClaims.Client, !(bool)e.Value)" />
+                <label for="scope_client_all" class="form-check-label fw-bold">client</label>
+                <div class="text-secondary">
+                    Grants access to API methods that read SLO events and pushes Gateway commands.
+                </div>
+            </fieldset>
+            <button type="submit" class="btn btn-primary" disabled=@(!FormValid)>Create API key</button>
+        </form>
+    </div>
+    <div class="col-lg-7">
+        <div class="table-responsive">
+            <h6>Active API keys</h6>
+            <table class="table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Key name</th>
+                        <th>Scopes</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (UserApiKeys.Any())
+                    {
+                        @foreach (var apiKey in UserApiKeys)
+                        {
+                            <tr>
+                                <td>@apiKey.Name</td>
+                                <td>@(string.Join(", ", apiKey.Claims.Select(x => x.Type)))</td>
+                                <td>@apiKey.CreatedUtc</td>
+                                <td><button class="btn btn-outline-danger" @onclick="() => RevokeKey(apiKey)">Revoke</button></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td class="text-center text-muted" colspan="4">No API keys found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 @code {
-	protected override void OnInitialized()
-	{
-		base.OnInitialized();
-	}
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    private string UserId { get; set; }
+
+    private IList<ApiKey> UserApiKeys { get; set; } = new List<ApiKey>();
+    
+    private string FormKeyName { get; set; } = "";
+    private HashSet<string> FormScopes { get; set; } = new HashSet<string>();
+    private bool FormValid => !string.IsNullOrWhiteSpace(FormKeyName) && FormScopes.Any() && UserId is not null;
+
+    private string LastApiKey { get; set; } = null;
+
+    private void SubmitForm()
+    {
+        logger.LogInformation("Api key form submitted with name: {name} and scopes: {scopes} by user: {userId}", FormKeyName, FormScopes, UserId);
+        if (UserId is not null) 
+        {
+            var trimmedName = FormKeyName.Trim();
+            var apiKey = apiKeyService.Create(trimmedName.Substring(0, Math.Min(50, trimmedName.Length)), UserId, FormScopes.ToList());
+            logger.LogTrace("Created apiKey {apiKey}: {key}", apiKey, apiKey.Key);
+            
+            if (apiKey is not null)
+            {
+                UserApiKeys.Add(apiKey);
+            }
+        }
+    }
+
+    private void RevokeKey(ApiKey key)
+    {
+        if (apiKeyService.Invalidate(key.Key))
+        {
+            UserApiKeys.Remove(key);
+        }
+    }
+
+    private void ToggleFormScope(string scope, bool toState)
+    {
+        if (toState)
+        {
+            FormScopes.Remove(scope);
+        }
+        else
+        {
+            FormScopes.Add(scope);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        var userId = user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier && !string.IsNullOrWhiteSpace(x.Value))?.Value;
+        if (userId is not null)
+        {
+            UserId = userId;
+
+            UserApiKeys = apiKeyService.GetForUser(userId).ToList();
+        }
+        await base.OnInitializedAsync();
+    }
 }

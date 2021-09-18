@@ -10,10 +10,10 @@ namespace SLGateway.Data
         public const string BearerAuthenticationScheme = "Bearer";
     }
 
-    public static class ApiRoles
+    public static class ApiKeyClaims
     {
-        public const string Object = "object";
-        public const string Client = "client";
+        public const string Object = "slgateway/object:all";
+        public const string Client = "slgateway/client:all";
     }
 
     public class ApiKey : IApiKey
