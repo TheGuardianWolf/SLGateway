@@ -121,10 +121,10 @@ namespace SLGateway
             {
                 options.AddPolicy(ApiKeyAuthenticationPolicy.Object, policy => policy
                     .AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)
-                    .RequireClaim(ApiKeyClaims.Object, bool.TrueString));
+                    .RequireClaim(ApiKeyScopes.Object, bool.TrueString));
                 options.AddPolicy(ApiKeyAuthenticationPolicy.Client, policy => policy
                     .AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)
-                    .RequireClaim(ApiKeyClaims.Client, bool.TrueString));
+                    .RequireClaim(ApiKeyScopes.Client, bool.TrueString));
             });
 
             services.AddHttpClient();

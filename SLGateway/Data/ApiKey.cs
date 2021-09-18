@@ -1,6 +1,7 @@
 ﻿using AspNetCore.Authentication.ApiKey;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 
@@ -17,7 +18,7 @@ namespace SLGateway.Data
         public const string BearerAuthenticationScheme = "Bearer";
     }
 
-    public static class ApiKeyClaims
+    public static class ApiKeyScopes
     {
         public const string Object = "slgateway/object:all";
         public const string Client = "slgateway/client:all";
@@ -31,6 +32,8 @@ namespace SLGateway.Data
         [JsonIgnore]
         public string OwnerName => UserId; // Aliased for interface
         public string UserId { get; set; }
-        public IReadOnlyCollection<Claim> Claims { get; set; }
+        [JsonIgnore]
+        public IReadOnlyCollection<Claim> Claims => Scopes?.Select(s => new Claim(s, bool.TrueString))?.ToList() ?? new List<Claim>();
+        public IEnumerable<string> Scopes { get; set; } = new List<string>();
     }
 }

@@ -32,6 +32,7 @@ namespace SLGateway.Services
             if (testingApiKeySection.Exists())
             {
                 var apiKey = new ApiKey();
+                apiKey.Scopes = null;
                 testingApiKeySection.Bind(apiKey);
                 _testApiKey = apiKey;
             }
@@ -86,16 +87,12 @@ namespace SLGateway.Services
 
             // Save API keys
             var apiKeysPath = Path.Combine(_storagePath, "apiKeys.json");
-            if (File.Exists(apiKeysPath))
+            if (dir.Exists)
             {
                 _logger.LogTrace("Found apiKey store at {path}", apiKeysPath);
                 using var fileStream = File.OpenWrite(apiKeysPath);
                 var data = _apiKeyRepository.GetAll();
                 await JsonSerializer.SerializeAsync(fileStream, data);
-            }
-            else
-            {
-                _logger.LogTrace("No existing apiKeys at {path}", apiKeysPath);
             }
 
             // Save object registrations
@@ -106,10 +103,6 @@ namespace SLGateway.Services
                 using var fileStream = File.OpenWrite(objectRegistrationPath);
                 var data = _objectRegistrationRepository.GetAll();
                 await JsonSerializer.SerializeAsync(fileStream, data);
-            }
-            else
-            {
-                _logger.LogWarning("Creating storage directory failed for {path}", objectRegistrationPath);
             }
         }
     }

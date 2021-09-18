@@ -58,13 +58,13 @@ namespace SLGateway.Services
             return _apiKeyRepository.GetKeysForOwner(username);
         }
 
-        public ApiKey Create(string commonName, string username, IEnumerable<string> claims)
+        public ApiKey Create(string commonName, string username, IEnumerable<string> scopes)
         {
-            var allowedClaims = new string[] { ApiKeyClaims.Client, ApiKeyClaims.Object };
+            var allowedScopes = new string[] { ApiKeyScopes.Client, ApiKeyScopes.Object };
             const string allowableChars = @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
 
-            var acceptedClaims = allowedClaims.Intersect(claims, StringComparer.OrdinalIgnoreCase);
-            if (!acceptedClaims.Any())
+            var acceptedScopes = allowedScopes.Intersect(scopes, StringComparer.OrdinalIgnoreCase);
+            if (!acceptedScopes.Any())
             {
                 return null;
             }
@@ -84,19 +84,13 @@ namespace SLGateway.Services
 
             var key = "SLGAPI-" + new string(chars);
 
-            var claimsList = new List<Claim>();
-            foreach (var c in claims)
-            {
-                claimsList.Add(new Claim(c, bool.TrueString));
-            }
-
             var apiKey = new ApiKey
             {
                 Key = key,
                 CreatedUtc = DateTime.UtcNow,
                 Name = commonName,
                 UserId = username,
-                Claims = claimsList
+                Scopes = acceptedScopes
             };
 
             if (!_apiKeyRepository.Create(apiKey))

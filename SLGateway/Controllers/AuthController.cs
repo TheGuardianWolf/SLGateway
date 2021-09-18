@@ -2,7 +2,10 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace SLGateway.Controllers
 {
@@ -15,6 +18,21 @@ namespace SLGateway.Controllers
         public async Task Login(string returnUrl = "/")
         {
             await HttpContext.ChallengeAsync("Auth0", new AuthenticationProperties() { RedirectUri = returnUrl });
+        }
+
+        [Route("signup")]
+        public async Task SignUp(string returnUrl = "/")
+        {
+            var authProperties = new AuthenticationProperties() { RedirectUri = returnUrl };
+            await HttpContext.ChallengeAsync("Auth0", authProperties);
+
+            // Modify redirect to signup
+            var uriBuilder = new UriBuilder(Response.Headers.Location);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            query["screen_hint"] = "signup";
+            uriBuilder.Query = query.ToString();
+
+            Response.Headers.Location = uriBuilder.ToString();
         }
 
         [Route("logout")]

@@ -53,14 +53,14 @@
                 <span>These options determine what objects or applications using this API key has access to.</span>
             </div>
             <fieldset class="form-check mb-3">
-                <input id="scope_object_all" type="checkbox" class="form-check-input" checked=@FormScopes.Contains(ApiKeyClaims.Object) @onchange="(e) => ToggleFormScope(ApiKeyClaims.Object, !(bool)e.Value)" />
+                <input id="scope_object_all" type="checkbox" class="form-check-input" checked=@FormScopes.Contains(ApiKeyScopes.Object) @onchange="(e) => ToggleFormScope(ApiKeyScopes.Object, !(bool)e.Value)" />
                 <label for="scope_object_all" class="form-check-label fw-bold">object</label>
                 <div class="text-secondary">
                     Grants access to API methods that registers SLOs and submit SLO events.
                 </div>
             </fieldset>
             <fieldset class="form-check mb-3">
-                <input id="scope_client_all" type="checkbox" class="form-check-input" checked=@FormScopes.Contains(ApiKeyClaims.Client) @onchange="(e) => ToggleFormScope(ApiKeyClaims.Client, !(bool)e.Value)" />
+                <input id="scope_client_all" type="checkbox" class="form-check-input" checked=@FormScopes.Contains(ApiKeyScopes.Client) @onchange="(e) => ToggleFormScope(ApiKeyScopes.Client, !(bool)e.Value)" />
                 <label for="scope_client_all" class="form-check-label fw-bold">client</label>
                 <div class="text-secondary">
                     Grants access to API methods that read SLO events and pushes Gateway commands.
@@ -88,7 +88,7 @@
                         {
                             <tr>
                                 <td>@apiKey.Name</td>
-                                <td>@(string.Join(", ", apiKey.Claims.Select(x => x.Type)))</td>
+                                <td>@(string.Join(", ", apiKey.Scopes))</td>
                                 <td>@apiKey.CreatedUtc</td>
                                 <td><button class="btn btn-outline-danger" @onclick="() => RevokeKey(apiKey)">Revoke</button></td>
                             </tr>
