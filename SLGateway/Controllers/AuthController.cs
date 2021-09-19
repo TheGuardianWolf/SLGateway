@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SLGateway.Data;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

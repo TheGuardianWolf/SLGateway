@@ -148,7 +148,7 @@ registrationHandler(key requestId, integer status)
 {
     if (status == 200)
     {
-        debugSay("Object registered");
+        debugSay("Object registered as: " + (string)objectId);
 
         if (!registered)
         {
@@ -497,10 +497,15 @@ default
             init();
         }
 
-        if (change & (CHANGED_REGION_START | CHANGED_REGION | CHANGED_TELEPORT))
+        if (change & (CHANGED_REGION_START | CHANGED_REGION))
         {
             // Reinitialise in this case as url is invalidated
             init();
         }
+    }
+
+    on_rez(integer startParam)
+    {
+        init();
     }
 }

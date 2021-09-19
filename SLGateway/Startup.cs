@@ -24,6 +24,7 @@ using AspNetCore.Authentication.ApiKey;
 using SLGateway.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication;
 
 namespace SLGateway
 {
@@ -46,15 +47,37 @@ namespace SLGateway
             services.Configure<CookiePolicyOptions>(options =>
             {
                 options.MinimumSameSitePolicy = SameSiteMode.None;
+                options.Secure = CookieSecurePolicy.SameAsRequest;
             });
+
             // Add authentication services
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            })
-                .AddCookie()
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
+                .AddApiKeyInAuthorizationHeader<ApiKeyService>(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, options =>
+                {
+                    options.KeyName = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme;
+                    options.IgnoreAuthenticationIfAllowAnonymous = true;
+                    options.SuppressWWWAuthenticateHeader = true;
+
+                    // Do not forward
+                    options.ForwardDefault = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme;
+                })
+                .AddCookie(options =>
+                {
+                    options.LoginPath = new PathString("/auth/login");
+                    options.LogoutPath = new PathString("/auth/logout");
+                    options.AccessDeniedPath = string.Empty;
+                    options.Events.OnRedirectToAccessDenied = (context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return context.Response.CompleteAsync();
+                    });
+                })
                 .AddOpenIdConnect("Auth0", options =>
                 {
                     // Set the authority to your Auth0 domain
@@ -104,7 +127,8 @@ namespace SLGateway
 
                             return Task.CompletedTask;
                         },
-                        OnRedirectToIdentityProvider = context => {
+                        OnRedirectToIdentityProvider = context =>
+                        {
                             context.ProtocolMessage.RedirectUri = HttpsUrl(context.ProtocolMessage.RedirectUri);
 
                             return Task.FromResult(0);
@@ -115,13 +139,8 @@ namespace SLGateway
                     {
                         NameClaimType = "name"
                     };
-                })
-                .AddApiKeyInAuthorizationHeader<ApiKeyService>(ApiKeyAuthenticationDefaults.BearerAuthenticationScheme, options =>
-                {
-                    options.KeyName = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme;
-                    options.IgnoreAuthenticationIfAllowAnonymous = true;
-                    options.SuppressWWWAuthenticateHeader = true;
                 });
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(ApiKeyAuthenticationPolicy.Object, policy => policy

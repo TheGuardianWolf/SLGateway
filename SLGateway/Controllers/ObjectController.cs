@@ -7,6 +7,7 @@ using SLGateway.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace SLGateway.Controllers
@@ -15,14 +16,14 @@ namespace SLGateway.Controllers
     [Route("api/[controller]")]
     public class ObjectController : ControllerBase
     {
-        private readonly IObjectRegistrationService _ors;
+        private readonly IObjectRegistrationService _objectRegistrationService;
         private readonly ILogger _logger;
         private readonly string _allowedUrlHostname;
 
-        public ObjectController(IConfiguration configuration, ILogger<ObjectController> logger, IObjectRegistrationService ors)
+        public ObjectController(IConfiguration configuration, ILogger<ObjectController> logger, IObjectRegistrationService objectRegistrationService)
         {
             _logger = logger;
-            _ors = ors;
+            _objectRegistrationService = objectRegistrationService;
             _allowedUrlHostname = configuration.GetValue<string>("SecondLifeHost");
         }
 
@@ -44,11 +45,13 @@ namespace SLGateway.Controllers
                 return BadRequest();
             }
 
-            if (!_ors.Register(new ObjectRegistration
+            if (!_objectRegistrationService.Register(new ObjectRegistration
             {
                 Id = id,
                 Url = reg.Url,
-                Token = reg.Token
+                Token = reg.Token,
+                ApiKey = this.GetApiKey(),
+                UserId = User.Claims.GetValue(ClaimTypes.NameIdentifier)
             }))
             {
                 _logger.LogWarning("Object {id} could not be registered", id);
@@ -66,12 +69,12 @@ namespace SLGateway.Controllers
         public IActionResult Deregister(Guid id)
         {
             // Check object ownership
-            if (_ors.GetObject(id)?.ApiKey != this.GetApiKey())
+            if (_objectRegistrationService.GetObject(id)?.ApiKey != this.GetApiKey())
             {
                 return Forbid();
             }
 
-            if (!_ors.Deregister(id))
+            if (!_objectRegistrationService.Deregister(id))
             {
                 _logger.LogWarning("Object {id} could not be deregistered", id);
                 return BadRequest();
