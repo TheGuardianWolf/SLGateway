@@ -28,14 +28,6 @@ namespace SLGateway.Controllers
             _objectRegistrationService = objectRegistrationService;
         }
 
-        [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.BearerAuthenticationScheme)]
-        [Route("forbid-api")]
-        [HttpGet]
-        public IActionResult ForbidApi()
-        {
-            return Forbid();
-        }
-
         [Authorize(ApiKeyAuthenticationPolicy.Client)]
         [Route("longpoll/{objectId}")]
         [HttpGet]
