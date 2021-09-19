@@ -1,22 +1,26 @@
-﻿using System;
+﻿using SLGatewayCore;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SLGatewayClient
 {
-    public class SLObject
+    public class SLObject : IAsyncDisposable, IDisposable
     {
         private GatewayClient _client;
+
+        private IEnumerable<ObjectEventHandle> _eventHandles = new List<ObjectEventHandle>();
+
+        public bool EnableEvents
+        {
+            get => _client.EventPolling;
+            set => _client.EventPolling = value;
+        }
 
         public SLObject(GatewayClient client)
         {
             _client = client;
-        }
-
-        // Object events
-        public bool EnableObjectEvents()
-        {
-
         }
 
         // Object commands
@@ -40,12 +44,12 @@ namespace SLGatewayClient
 
         }
 
-        public void ApplyRotationalImpulse(Vector vector, bool local)
+        public void ApplyRotationalImpulse(IVector vector, bool local)
         {
 
         }
 
-        public EventHandle? Listen(int channel, string exactMatchLegacyName, Guid filterId, string exactMatchText)
+        public Task<ObjectEventHandle?> ListenAsync(int channel, string exactMatchLegacyName, Guid filterId, string exactMatchText)
         {
             if (!EnableObjectEvents)
             {
@@ -53,7 +57,7 @@ namespace SLGatewayClient
             }
         }
 
-        public void ListenRemove(EventHandle handle)
+        public Task ListenRemove(int handle)
         {
 
         }
@@ -83,7 +87,7 @@ namespace SLGatewayClient
 
         }
 
-        public EventHandle? RequestAgentData(Guid agentId, AgentData dataFlags)
+        public ObjectEventHandle? RequestAgentData(Guid agentId, AgentData dataFlags)
         {
             if (!EnableObjectEvents)
             {
@@ -91,12 +95,29 @@ namespace SLGatewayClient
             }
         }
 
-        public EventHandle? RequestDisplayName(Guid agentId)
+        public ObjectEventHandle? RequestDisplayName(Guid agentId)
         {
             if (!EnableObjectEvents)
             {
                 return null;
             }
+        }
+
+        public void Dispose()
+        {
+            DisposeAsync().AsTask().Wait();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            foreach (var eventHandle in _eventHandles)
+            {
+                if (eventHandle.Code == ObjectEventCode.Listen)
+                {
+                    await ListenRemove(eventHandle.Handle);
+                }
+            }
+            await _client.DisposeAsync();
         }
     }
 }
