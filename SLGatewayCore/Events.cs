@@ -152,6 +152,7 @@ namespace SLGatewayCore
     {
         public ObjectEventCode Code { get; set; }
         public IEnumerable<dynamic> Args { get; set; } = Enumerable.Empty<dynamic>();
+        public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     }
 
     public static class ObjectEventExtenstions

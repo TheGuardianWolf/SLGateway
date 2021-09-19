@@ -96,13 +96,18 @@ namespace SLGateway
                                     var request = context.Request;
                                     postLogoutUri = request.Scheme + "://" + request.Host + request.PathBase + postLogoutUri;
                                 }
-                                logoutUri += $"&returnTo={ Uri.EscapeDataString(postLogoutUri) }";
+                                logoutUri += $"&returnTo={ Uri.EscapeDataString(HttpsUrl(postLogoutUri)) }";
                             }
 
                             context.Response.Redirect(logoutUri);
                             context.HandleResponse();
 
                             return Task.CompletedTask;
+                        },
+                        OnRedirectToIdentityProvider = context => {
+                            context.ProtocolMessage.RedirectUri = HttpsUrl(context.ProtocolMessage.RedirectUri);
+
+                            return Task.FromResult(0);
                         }
                     };
 
@@ -200,6 +205,16 @@ namespace SLGateway
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
             });
+        }
+
+        private string HttpsUrl(string url)
+        {
+            if (url.StartsWith("http://"))
+            {
+                return "https://" + url.Substring("http://".Length);
+            }
+
+            return url;
         }
     }
 }

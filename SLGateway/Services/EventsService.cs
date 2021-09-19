@@ -29,26 +29,26 @@ namespace SLGateway.Services
     public class EventsService : IEventsService
     {
         private readonly ILogger _logger;
-        private readonly IObjectRegistrationService _ors;
-        private readonly IObjectEventsRepository _oer;
+        private readonly IObjectRegistrationService _objectRegistrationService;
+        private readonly IObjectEventsRepository _objectEventsRepository;
         private readonly HttpClient _httpClient;
 
-        public EventsService(ILogger<EventsService> logger, IObjectRegistrationService ors, IHttpClientFactory httpClientFactory, IObjectEventsRepository oer)
+        public EventsService(ILogger<EventsService> logger, IObjectRegistrationService objectRegistrationService, IHttpClientFactory httpClientFactory, IObjectEventsRepository objectEventsRepository)
         {
-            _ors = ors;
-            _oer = oer;
+            this._objectRegistrationService = objectRegistrationService;
+            _objectEventsRepository = objectEventsRepository;
             _httpClient = httpClientFactory.CreateClient();
             _logger = logger;
         }
 
         public async Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs)
         {
-            if (!_ors.IsRegistered(objectId))
+            if (!_objectRegistrationService.IsRegistered(objectId))
             {
                 return null;
             }
 
-            var queue = _oer.GetEventQueue(objectId);
+            var queue = _objectEventsRepository.GetEventQueue(objectId);
 
             if (queue == null)
             {
@@ -80,17 +80,17 @@ namespace SLGateway.Services
 
         public bool AddEventForObject(Guid objectId, ObjectEvent evt)
         {
-            if (!_ors.IsRegistered(objectId))
+            if (!_objectRegistrationService.IsRegistered(objectId))
             {
                 return false;
             }
 
-            return _oer.Create(objectId, evt);
+            return _objectEventsRepository.Create(objectId, evt);
         }
 
         public async Task<CommandEventResponse> PushEventToObject(Guid objectId, CommandEvent evt)
         {
-            var obj = _ors.GetObject(objectId);
+            var obj = _objectRegistrationService.GetObject(objectId);
             if (obj is null)
             {
                 return null;

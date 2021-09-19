@@ -31,7 +31,7 @@ namespace SLGateway.Controllers
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query["screen_hint"] = "signup";
             uriBuilder.Query = query.ToString();
-
+            uriBuilder.Port = -1;
             Response.Headers.Location = uriBuilder.ToString();
         }
 

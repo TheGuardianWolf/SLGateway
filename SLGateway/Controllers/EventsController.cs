@@ -18,13 +18,14 @@ namespace SLGateway.Controllers
     public class EventsController : ControllerBase
     {
         private readonly ILogger<EventsController> _logger;
-        private readonly IEventsService _es;
+        private readonly IEventsService _eventsService;
         private readonly IObjectRegistrationService _objectRegistrationService;
 
         public EventsController(ILogger<EventsController> logger, IEventsService eventsService, IObjectRegistrationService objectRegistrationService)
         {
             _logger = logger;
-            _es = eventsService;
+            _eventsService = eventsService;
+            _objectRegistrationService = objectRegistrationService;
         }
 
         [Authorize(ApiKeyAuthenticationPolicy.Client)]
@@ -46,7 +47,7 @@ namespace SLGateway.Controllers
                 return Forbid();
             }
 
-            var events = await _es.WaitForObjectEvents(objectId, 60 * 1000);
+            var events = await _eventsService.WaitForObjectEvents(objectId, 60 * 1000);
             _logger.LogTrace("Collected {count} events for object {objectId}", events.Count(), objectId);
 
             return Ok(events);
@@ -77,7 +78,7 @@ namespace SLGateway.Controllers
                 return BadRequest();
             }
 
-            var response = await _es.PushEventToObject(objectId, evt);
+            var response = await _eventsService.PushEventToObject(objectId, evt);
             if (response.Data is null)
             {
                 _logger.LogWarning("Pushing event {event} for object {objectId} failed with code: {code}", evt, objectId, response.HttpStatus);
@@ -111,7 +112,7 @@ namespace SLGateway.Controllers
                 return BadRequest();
             }
 
-            if (!_es.AddEventForObject(objectId, evt))
+            if (!_eventsService.AddEventForObject(objectId, evt))
             {
                 _logger.LogWarning("Adding event {event} for object {objectId} failed", evt, objectId);
                 return BadRequest();

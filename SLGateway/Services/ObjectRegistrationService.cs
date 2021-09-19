@@ -20,32 +20,32 @@ namespace SLGateway.Services
     public class ObjectRegistrationService : IObjectRegistrationService
     {
         private readonly ILogger _logger;
-        private readonly IObjectRegistrationRepository _orr;
+        private readonly IObjectRegistrationRepository _objectRegistrationRepository;
 
-        public ObjectRegistrationService(ILogger<ObjectRegistrationService> logger, IObjectRegistrationRepository orr)
+        public ObjectRegistrationService(ILogger<ObjectRegistrationService> logger, IObjectRegistrationRepository objectRegistrationRepository)
         {
             _logger = logger;
-            _orr = orr;
+            _objectRegistrationRepository = objectRegistrationRepository;
         }
 
         public bool IsRegistered(Guid id)
         {
-            return _orr.Get(id) is not null;
+            return _objectRegistrationRepository.Get(id) is not null;
         }
 
         public ObjectRegistration GetObject(Guid id)
         {
-            return _orr.Get(id);
+            return _objectRegistrationRepository.Get(id);
         }
 
         public bool Register(ObjectRegistration reg)
         {
-            return _orr.Update(reg);
+            return _objectRegistrationRepository.Update(reg);
         }
 
         public bool Deregister(Guid id)
         {
-            return _orr.Delete(id);
+            return _objectRegistrationRepository.Delete(id);
         }
     }
 }

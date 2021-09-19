@@ -120,6 +120,12 @@
 
     private string LastApiKey { get; set; } = null;
 
+    private void ResetForm()
+    {
+        FormKeyName = "";
+        FormScopes = new HashSet<string>();
+    }
+
     private void SubmitForm()
     {
         logger.LogInformation("Api key form submitted with name: {name} and scopes: {scopes} by user: {userId}", FormKeyName, FormScopes, UserId);
@@ -132,7 +138,9 @@
             if (apiKey is not null)
             {
                 LastApiKey = apiKey.Key;
-                UserApiKeys = apiKeyService.GetForUser(UserId).ToList();
+                UserApiKeys = apiKeyService.GetForUser(UserId);
+
+                ResetForm();
             }
         }
     }

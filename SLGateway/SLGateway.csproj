@@ -9,9 +9,14 @@
 
   <ItemGroup>
     <Compile Remove="Logs\**" />
+    <Compile Remove="Storage\**" />
     <Content Remove="Logs\**" />
+    <Content Remove="Storage\**" />
     <EmbeddedResource Remove="Logs\**" />
+    <EmbeddedResource Remove="Storage\**" />
     <None Remove="Logs\**" />
+    <None Remove="Storage\**" />
+    <TypeScriptCompile Remove="Storage\**" />
   </ItemGroup>
 
   <ItemGroup>
