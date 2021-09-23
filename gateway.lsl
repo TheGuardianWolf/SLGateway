@@ -1,7 +1,7 @@
 string API_KEY = "L2quvgihmJke7xYx6EVF";
 
 integer DEBUG = TRUE;
-float HEARTBEAT_INTERVAL_SEC = 3600; // 1 hour
+float HEARTBEAT_INTERVAL_SEC = 900; // 1 hour
 integer TOKEN_LENGTH = 12;
 
 integer registered = FALSE;
