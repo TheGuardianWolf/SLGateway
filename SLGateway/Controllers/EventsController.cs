@@ -81,8 +81,8 @@ namespace SLGateway.Controllers
             var response = await _eventsService.PushEventToObject(objectId, evt);
             if (response.Data is null)
             {
-                _logger.LogWarning("Pushing event {event} for object {objectId} failed with code: {code}", evt, objectId, response.HttpStatus);
-                return StatusCode(response.HttpStatus);
+                _logger.LogWarning("Pushing event {event} for object {objectId} failed with code: {code}", evt, objectId, response.HttpStatusCode);
+                return StatusCode(response.HttpStatusCode);
             }
 
             _logger.LogTrace("Pushing event {event} for object {objectId}", evt, objectId);

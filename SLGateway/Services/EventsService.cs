@@ -119,14 +119,14 @@ namespace SLGateway.Services
                 return new CommandEventResponse
                 {
                     Data = data,
-                    HttpStatus = (int)response.StatusCode
+                    HttpStatusCode = (int)response.StatusCode
                 };
             }
 
             return new CommandEventResponse
             {
                 Data = null,
-                HttpStatus = (int)response.StatusCode
+                HttpStatusCode = (int)response.StatusCode
             };
         }
     }

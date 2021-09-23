@@ -104,8 +104,12 @@ namespace SLGatewayCore
 
     public class CommandEventResponse
     {
-        public int HttpStatus { get; set; }
+        public int HttpStatusCode { get; set; }
         public dynamic? Data { get; set; }
+        public bool IsSuccessStatusCode
+        {
+            get { return (HttpStatusCode >= 200) && (HttpStatusCode <= 299); }
+        }
     }
 
     public static class CommandEventExtenstions
