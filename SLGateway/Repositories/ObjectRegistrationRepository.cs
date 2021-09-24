@@ -1,4 +1,6 @@
-﻿using SLGateway.Data;
+﻿using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
+using SLGateway.Data;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,52 +11,49 @@ namespace SLGateway.Repositories
 {
     public interface IObjectRegistrationRepository
     {
-        void InjectData(IEnumerable<ObjectRegistration> registrations);
-        ObjectRegistration Get(Guid objectId);
-        IEnumerable<ObjectRegistration> GetAll();
-        bool Update(ObjectRegistration registration);
-        bool Delete(Guid objectId);
+        Task<bool> Delete(Guid objectId);
+        Task<ObjectRegistration> Get(Guid objectId);
+        Task<bool> Update(ObjectRegistration registration);
     }
 
     public class ObjectRegistrationRepository : IObjectRegistrationRepository
     {
-        private ConcurrentDictionary<Guid, ObjectRegistration> _objects = new ConcurrentDictionary<Guid, ObjectRegistration>();
+        private IMongoCollection<ObjectRegistrationEntity> _collection;
+        private ILogger _logger;
 
-        // Used for the moment with json data
-        public void InjectData(IEnumerable<ObjectRegistration> registrations)
+        public ObjectRegistrationRepository(ILogger<ObjectRegistrationRepository> logger, IMongoDataSource mongoDataSource)
         {
-            var objects = new ConcurrentDictionary<Guid, ObjectRegistration>();
-            foreach (var registration in registrations)
+            _logger = logger;
+            _collection = mongoDataSource.Database.GetCollection<ObjectRegistrationEntity>("ObjectRegistrations");
+        }
+
+        public async Task<ObjectRegistration> Get(Guid objectId)
+        {
+            var cursor = await _collection.FindAsync(c => c.ObjectId == objectId);
+            var entity = cursor.FirstOrDefault();
+            if (entity is null)
             {
-                objects.TryAdd(registration.Id, registration);
+                return null;
             }
-            _objects = objects;
+
+            return entity.ToObjectRegistration();
         }
 
-        public IEnumerable<ObjectRegistration> GetAll()
+        public async Task<bool> Update(ObjectRegistration registration)
         {
-            return _objects.Values.ToList();
-        }
-
-        public ObjectRegistration Get(Guid objectId)
-        {
-            _objects.TryGetValue(objectId, out var val);
-
-            return val;
-        }
-
-        public bool Update(ObjectRegistration registration)
-        {
-            var result = _objects.AddOrUpdate(registration.Id, registration, (id, val) => registration);
+            var result = await _collection.UpdateOneAsync(c => c.ObjectId == registration.ObjectId, null, new UpdateOptions
+            {
+                IsUpsert = true
+            });
 
             return result is not null;
         }
 
-        public bool Delete(Guid objectId)
+        public async Task<bool> Delete(Guid objectId)
         {
-            var result = _objects.TryRemove(objectId, out var _);
+            var result = await _collection.DeleteOneAsync(c => c.ObjectId == objectId);
 
-            return result;
+            return result is not null;
         }
     }
 }

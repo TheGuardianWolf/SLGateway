@@ -40,7 +40,7 @@ namespace SLGateway.Controllers
             }
 
             // Check ownership of object
-            var obj = _objectRegistrationService.GetObject(objectId);
+            var obj = await _objectRegistrationService.GetObject(objectId);
             if (obj?.UserId != User.Claims.GetValue(ClaimTypes.NameIdentifier))
             {
                 _logger.LogWarning("Current user ({currentUserId}) does not match object user ({objectUserId})", User.Identity?.Name, obj?.UserId);
@@ -65,7 +65,7 @@ namespace SLGateway.Controllers
             }
 
             // Check ownership of object
-            var obj = _objectRegistrationService.GetObject(objectId);
+            var obj = await _objectRegistrationService.GetObject(objectId);
             if (obj?.UserId != User.Claims.GetValue(ClaimTypes.NameIdentifier))
             {
                 _logger.LogWarning("Current user ({currentUserId}) does not match object user ({objectUserId})", User.Identity?.Name, obj?.UserId);
@@ -92,7 +92,7 @@ namespace SLGateway.Controllers
         [Authorize(ApiKeyAuthenticationPolicy.Object)]
         [Route("receive/{objectId}")]
         [HttpPost]
-        public IActionResult Receive(Guid objectId, ObjectEvent evt)
+        public async Task<IActionResult> Receive(Guid objectId, ObjectEvent evt)
         {
             if (objectId == Guid.Empty)
             {
@@ -101,7 +101,8 @@ namespace SLGateway.Controllers
             }
 
             // Check object ownership
-            if (_objectRegistrationService.GetObject(objectId)?.ApiKey != this.GetApiKey())
+            var obj = await _objectRegistrationService.GetObject(objectId);
+            if (obj?.ApiKey != this.GetApiKey())
             {
                 return Forbid();
             }
@@ -112,7 +113,7 @@ namespace SLGateway.Controllers
                 return BadRequest();
             }
 
-            if (!_eventsService.AddEventForObject(objectId, evt))
+            if (!await _eventsService.AddEventForObject(objectId, evt))
             {
                 _logger.LogWarning("Adding event {event} for object {objectId} failed", evt, objectId);
                 return BadRequest();

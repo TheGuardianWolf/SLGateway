@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SLGateway.Data;
 using SLGatewayCore;
 using System;
@@ -17,15 +18,16 @@ namespace SLGateway.Repositories
 
     public class ObjectEventsRepository : IObjectEventsRepository, IDisposable
     {
-        private const int maxEvents = 100;
-
         private ConcurrentDictionary<Guid, BlockingCollection<ObjectEvent>> _events = new ConcurrentDictionary<Guid, BlockingCollection<ObjectEvent>>();
 
-        private ILogger _logger;
+        private readonly int _maxEvents;
 
-        public ObjectEventsRepository(ILogger<ObjectEventsRepository> logger)
+        private readonly ILogger _logger;
+
+        public ObjectEventsRepository(IConfiguration configuration, ILogger<ObjectEventsRepository> logger)
         {
             _logger = logger;
+            _maxEvents = configuration.GetValue<int>("MaxEventsCache");
         }
 
         public IEnumerable<ObjectEvent> GetEnumerator(Guid objectId)
@@ -74,7 +76,7 @@ namespace SLGateway.Repositories
                 return false;
             }
 
-            if (objectEvents.Count > maxEvents)
+            if (objectEvents.Count > _maxEvents)
             {
                 _logger.LogWarning("Discarding event for {objectId} as queue is full", objectId);
                 objectEvents.TryTake(out var _);

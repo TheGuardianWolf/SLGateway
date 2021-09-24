@@ -44,6 +44,9 @@ namespace SLGateway
             var auth0ClientId = Configuration.GetValue<string>("Auth0:ClientId");
             var auth0ClientSecret = Configuration.GetValue<string>("Auth0:ClientSecret");
 
+            var connectionString = Configuration.GetConnectionString("Storage");
+            var databaseName = Configuration.GetValue<string>("DatabaseName");
+
             services.Configure<CookiePolicyOptions>(options =>
             {
                 options.MinimumSameSitePolicy = SameSiteMode.None;
@@ -152,13 +155,16 @@ namespace SLGateway
             });
 
             services.AddHttpClient();
+            services.AddSingleton<IMongoDataSource, MongoDataSource>(sc =>
+            {
+                return new MongoDataSource(connectionString, databaseName);
+            });
             services.AddSingleton<IObjectEventsRepository, ObjectEventsRepository>();
             services.AddSingleton<IObjectRegistrationRepository, ObjectRegistrationRepository>();
             services.AddSingleton<IApiKeyRepository, ApiKeyRepository>();
             services.AddScoped<IEventsService, EventsService>();
             services.AddScoped<IObjectRegistrationService, ObjectRegistrationService>();
             services.AddScoped<IApiKeyService, ApiKeyService>();
-            services.AddHostedService<StorageManagerHostedService>();
 
             services.AddRazorPages(options =>
             {

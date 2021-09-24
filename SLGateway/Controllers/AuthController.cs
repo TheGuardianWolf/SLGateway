@@ -28,12 +28,12 @@ namespace SLGateway.Controllers
             await HttpContext.ChallengeAsync("Auth0", authProperties);
 
             // Modify redirect to signup
-            var uriBuilder = new UriBuilder(Response.Headers.Location);
+            var uriBuilder = new UriBuilder(Response.Headers["Location"]);
             var query = HttpUtility.ParseQueryString(uriBuilder.Query);
             query["screen_hint"] = "signup";
             uriBuilder.Query = query.ToString();
             uriBuilder.Port = -1;
-            Response.Headers.Location = uriBuilder.ToString();
+            Response.Headers["Location"] = uriBuilder.ToString();
         }
 
         [Route("logout")]

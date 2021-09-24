@@ -21,9 +21,9 @@ namespace SLGateway.Services
 {
     public interface IEventsService
     {
-        Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs);
-        bool AddEventForObject(Guid objectId, ObjectEvent evt);
+        Task<bool> AddEventForObject(Guid objectId, ObjectEvent evt);
         Task<CommandEventResponse> PushEventToObject(Guid objectId, CommandEvent evt);
+        Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs);
     }
 
     public class EventsService : IEventsService
@@ -43,7 +43,7 @@ namespace SLGateway.Services
 
         public async Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs)
         {
-            if (!_objectRegistrationService.IsRegistered(objectId))
+            if (!await _objectRegistrationService.IsRegistered(objectId))
             {
                 return null;
             }
@@ -78,9 +78,9 @@ namespace SLGateway.Services
             });
         }
 
-        public bool AddEventForObject(Guid objectId, ObjectEvent evt)
+        public async Task<bool> AddEventForObject(Guid objectId, ObjectEvent evt)
         {
-            if (!_objectRegistrationService.IsRegistered(objectId))
+            if (!await _objectRegistrationService.IsRegistered(objectId))
             {
                 return false;
             }
@@ -90,7 +90,7 @@ namespace SLGateway.Services
 
         public async Task<CommandEventResponse> PushEventToObject(Guid objectId, CommandEvent evt)
         {
-            var obj = _objectRegistrationService.GetObject(objectId);
+            var obj = await _objectRegistrationService.GetObject(objectId);
             if (obj is null)
             {
                 return null;
@@ -110,7 +110,7 @@ namespace SLGateway.Services
 
             // Unfortunately SL can't read the auth header so we use this instead
             requestMessage.Headers.UserAgent.Add(new ProductInfoHeaderValue("SLOToken", obj.Token));
-       
+
             var response = await _httpClient.SendAsync(requestMessage);
 
             if (response.IsSuccessStatusCode)

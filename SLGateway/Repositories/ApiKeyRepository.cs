@@ -1,53 +1,50 @@
-﻿using SLGateway.Data;
+﻿using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
+using SLGateway.Data;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SLGateway.Repositories
 {
     public interface IApiKeyRepository
     {
-        ApiKey Get(string key);
-        IEnumerable<ApiKey> GetAll();
-        bool Create(ApiKey key);
-        IEnumerable<ApiKey> GetKeysForOwner(string userId);
-        bool Delete(string key);
-        void InjectData(IEnumerable<ApiKey> apiKeys);
+        Task<bool> Create(ApiKey key);
+        Task<bool> Delete(string key);
+        Task<ApiKey> Get(string key);
+        Task<IEnumerable<ApiKey>> GetKeysForOwner(string ownerName);
+        Task<bool> DeleteForOwner(string ownerName);
     }
 
     public class ApiKeyRepository : IApiKeyRepository
     {
+        private readonly ILogger _logger;
+        private readonly IMongoCollection<ApiKeyEntity> _collection;
         private ConcurrentDictionary<string, ApiKey> _apiKeys = new ConcurrentDictionary<string, ApiKey>();
 
-        // Used for the moment with json data
-        public void InjectData(IEnumerable<ApiKey> apiKeys)
+        public ApiKeyRepository(ILogger<ApiKeyRepository> logger, IMongoDataSource mongoDataSource)
         {
-            var newKeys = new ConcurrentDictionary<string, ApiKey>();
-            foreach (var key in apiKeys)
-            {
-                newKeys.TryAdd(key.Key, key);
-            }
-            _apiKeys = newKeys;
+            _logger = logger;
+            _collection = mongoDataSource.Database.GetCollection<ApiKeyEntity>("ApiKeys");
         }
 
-        public IEnumerable<ApiKey> GetKeysForOwner(string ownerName)
+        public async Task<IEnumerable<ApiKey>> GetKeysForOwner(string ownerName)
         {
-            return _apiKeys.Values.Where(x => x.OwnerName == ownerName);
+            var cursor = await _collection.FindAsync(k => k.UserId == ownerName);
+            var result = await cursor.ToListAsync();
+            return result.Select(x => x.ToApiKey()).ToList();
         }
 
-        public ApiKey Get(string key)
+        public async Task<ApiKey> Get(string key)
         {
-            _apiKeys.TryGetValue(key, out var apiKey);
-            return apiKey;
+            var cursor = await _collection.FindAsync(k => k.Key == key);
+            var result = await cursor.FirstOrDefaultAsync();
+            return result.ToApiKey();
         }
 
-        public IEnumerable<ApiKey> GetAll()
-        {
-            return _apiKeys.Values.ToList();
-        }
-
-        public bool Create(ApiKey key)
+        public async Task<bool> Create(ApiKey key)
         {
             if (string.IsNullOrEmpty(key.Key))
             {
@@ -59,22 +56,31 @@ namespace SLGateway.Repositories
                 return false;
             }
 
-            return _apiKeys.TryAdd(key.Key, key);
+            await _collection.InsertOneAsync(key.ToEntity());
+
+            return true;
         }
 
-        public bool Delete(string key)
+        public async Task<bool> Delete(string key)
         {
             if (string.IsNullOrEmpty(key))
             {
                 return false;
             }
 
-            if (!_apiKeys.ContainsKey(key))
+            var result = await _collection.DeleteOneAsync(o => o.Key == key);
+            return result.IsAcknowledged;
+        }
+
+        public async Task<bool> DeleteForOwner(string ownerName)
+        {
+            if (string.IsNullOrEmpty(ownerName))
             {
                 return false;
             }
 
-            return _apiKeys.TryRemove(key, out var _);
+            var result = await _collection.DeleteManyAsync(o => o.UserId == ownerName);
+            return result.IsAcknowledged;
         }
     }
 }

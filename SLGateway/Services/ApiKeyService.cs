@@ -13,10 +13,11 @@ namespace SLGateway.Services
 {
     public interface IApiKeyService
     {
-        ApiKey Get(string key);
-        IEnumerable<ApiKey> GetForUser(string username);
-        ApiKey Create(string commonName, string username, IEnumerable<string> claims);
-        bool Invalidate(string key);
+        Task<ApiKey> Create(string commonName, string username, IEnumerable<string> scopes);
+        Task<ApiKey> Get(string key);
+        Task<IEnumerable<ApiKey>> GetForUser(string username);
+        Task<bool> Invalidate(string key);
+        Task<IApiKey> ProvideAsync(string key);
     }
 
     public class ApiKeyService : IApiKeyProvider, IApiKeyService
@@ -32,14 +33,14 @@ namespace SLGateway.Services
             _apiKeyRepository = apiKeyRepository;
         }
 
-        public Task<IApiKey> ProvideAsync(string key)
+        public async Task<IApiKey> ProvideAsync(string key)
         {
             try
             {
-                var apiKey = Get(key);
+                var apiKey = await Get(key);
                 _logger.LogTrace("Api key requested: {key}, returned: {apiKey}", key, apiKey?.Key);
 
-                return Task.FromResult((IApiKey)apiKey);
+                return apiKey;
             }
             catch (Exception ex)
             {
@@ -48,17 +49,17 @@ namespace SLGateway.Services
             }
         }
 
-        public ApiKey Get(string key)
+        public async Task<ApiKey> Get(string key)
         {
-            return _apiKeyRepository.Get(key);
+            return await _apiKeyRepository.Get(key);
         }
 
-        public IEnumerable<ApiKey> GetForUser(string username)
+        public async Task<IEnumerable<ApiKey>> GetForUser(string username)
         {
-            return _apiKeyRepository.GetKeysForOwner(username);
+            return await _apiKeyRepository.GetKeysForOwner(username);
         }
 
-        public ApiKey Create(string commonName, string username, IEnumerable<string> scopes)
+        public async Task<ApiKey> Create(string commonName, string username, IEnumerable<string> scopes)
         {
             var allowedScopes = new string[] { ApiKeyScopes.Client, ApiKeyScopes.Object };
             const string allowableChars = @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
@@ -93,7 +94,7 @@ namespace SLGateway.Services
                 Scopes = acceptedScopes
             };
 
-            if (!_apiKeyRepository.Create(apiKey))
+            if (!await _apiKeyRepository.Create(apiKey))
             {
                 return null;
             }
@@ -101,9 +102,9 @@ namespace SLGateway.Services
             return apiKey;
         }
 
-        public bool Invalidate(string key)
+        public async Task<bool> Invalidate(string key)
         {
-            return _apiKeyRepository.Delete(key);
+            return await _apiKeyRepository.Delete(key);
         }
     }
 }

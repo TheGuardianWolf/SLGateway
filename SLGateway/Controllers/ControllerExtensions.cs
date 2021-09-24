@@ -10,7 +10,7 @@ namespace SLGateway.Controllers
     {
         public static string GetApiKey(this ControllerBase controller)
         {
-            string authHeader = controller.Request.Headers.Authorization;
+            string authHeader = controller.Request.Headers["Authorization"];
             var key = authHeader.Split(' ', StringSplitOptions.TrimEntries)[1];
             return key;
         }

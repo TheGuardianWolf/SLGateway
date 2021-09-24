@@ -66,40 +66,67 @@
                     Grants access to API methods that read SLO events and pushes Gateway commands.
                 </div>
             </fieldset>
-            <button type="submit" class="btn btn-primary" disabled=@(!FormValid)>Create API key</button>
+            <button type="submit" class="btn btn-primary align-middle" disabled=@(!FormValid && !IsCreatingApiKey && !IsLoadingApiKeys)>
+                Create API key
+                <ConditionalGroup When=@IsCreatingApiKey>
+                    <div class="d-inline-block spinner-border spinner-border-sm text-light" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </div>
+                </ConditionalGroup>
+            </button>
         </form>
     </div>
     <div class="col-lg-7">
         <div class="table-responsive">
             <h6>Active API keys</h6>
-            <table class="table">
+            <table class="table align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Key name</th>
                         <th>Scopes</th>
                         <th>Created</th>
-                        <th></th>
+                        <th style="width:120px"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (UserApiKeys.Any())
-                    {
-                        @foreach (var apiKey in UserApiKeys)
+                    <ConditionalGroup When=@IsLoadingApiKeys>
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                Retrieving API keys...
+                                <div class="d-inline-block spinner-grow spinner-grow-sm" role="status">
+                                </div>
+                            </td>
+                        </tr>
+                    </ConditionalGroup>
+                    <ConditionalGroup When=@(!IsLoadingApiKeys)>
+                        @if (UserApiKeys.Any())
+                        {
+                            @foreach (var apiKey in UserApiKeys)
+                            {
+                                <tr>
+                                    <td>@apiKey.Name</td>
+                                    <td>@(string.Join(", ", apiKey.Scopes))</td>
+                                    <td>@apiKey.CreatedUtc</td>
+                                    <td>
+                                        <button class="btn btn-outline-danger" @onclick="() => RevokeKey(apiKey)" disabled=@(IsRevokingApiKey.Contains(apiKey.Key))>
+                                            Revoke
+                                            <ConditionalGroup When=@(IsRevokingApiKey.Contains(apiKey.Key))>
+                                                <div class="d-inline-block spinner-border spinner-border-sm text-light" role="status">
+                                                  <span class="sr-only">Loading...</span>
+                                                </div>
+                                            </ConditionalGroup>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td>@apiKey.Name</td>
-                                <td>@(string.Join(", ", apiKey.Scopes))</td>
-                                <td>@apiKey.CreatedUtc</td>
-                                <td><button class="btn btn-outline-danger" @onclick="() => RevokeKey(apiKey)">Revoke</button></td>
+                                <td class="text-center text-muted" colspan="4">No API keys found.</td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td class="text-center text-muted" colspan="4">No API keys found.</td>
-                        </tr>
-                    }
+                    </ConditionalGroup>
                 </tbody>
             </table>
         </div>
@@ -120,28 +147,39 @@
 
     private string LastApiKey { get; set; } = null;
 
+    // Status indicators
+    private bool IsLoadingApiKeys { get; set; } = true;
+    private bool IsCreatingApiKey { get; set; }
+    private HashSet<string> IsRevokingApiKey { get; set; } = new HashSet<string>();
+
     private void ResetForm()
     {
         FormKeyName = "";
         FormScopes = new HashSet<string>();
     }
 
-    private void SubmitForm()
+    private async void SubmitForm()
     {
         logger.LogInformation("Api key form submitted with name: {name} and scopes: {scopes} by user: {userId}", FormKeyName, FormScopes, UserId);
         if (UserId is not null) 
         {
+            IsCreatingApiKey = true;
+            StateHasChanged();
+
             var trimmedName = FormKeyName.Trim();
-            var apiKey = apiKeyService.Create(trimmedName.Substring(0, Math.Min(50, trimmedName.Length)), UserId, FormScopes.ToList());
+            var apiKey = await apiKeyService.Create(trimmedName.Substring(0, Math.Min(50, trimmedName.Length)), UserId, FormScopes.ToList());
             logger.LogTrace("Created apiKey {apiKey}: {key}", apiKey, apiKey.Key);
             
             if (apiKey is not null)
             {
                 LastApiKey = apiKey.Key;
-                UserApiKeys = apiKeyService.GetForUser(UserId);
+                UserApiKeys = await apiKeyService.GetForUser(UserId);
 
                 ResetForm();
             }
+
+            IsCreatingApiKey = false;
+            StateHasChanged();
         }
     }
 
@@ -150,11 +188,21 @@
         var confirm = await jsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to revoke this key? This action cannot be undone.");
         if (confirm)
         {
-            if (apiKeyService.Invalidate(key.Key))
+            IsRevokingApiKey.Add(key.Key);
+            StateHasChanged();
+
+            if (await apiKeyService.Invalidate(key.Key))
             {
-                UserApiKeys = apiKeyService.GetForUser(UserId);
-                StateHasChanged();
+                UserApiKeys = await apiKeyService.GetForUser(UserId);
+
+                if (key.Key == LastApiKey)
+                {
+                    LastApiKey = null;
+                }
             }
+
+            IsRevokingApiKey.Remove(key.Key);
+            StateHasChanged();
         }
     }
 
@@ -180,8 +228,11 @@
         {
             UserId = userId;
 
-            UserApiKeys = apiKeyService.GetForUser(userId);
+            UserApiKeys = await apiKeyService.GetForUser(userId);
         }
+
+        IsLoadingApiKeys = false;
+
         await base.OnInitializedAsync();
     }
 }

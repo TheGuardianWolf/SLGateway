@@ -21,7 +21,6 @@ namespace SLGatewayClient
 
         public string ApiKey { get; set; }
         public Uri GatewayUrl { get; set; }
-        public string ObjectId { get; set; }
 
         private readonly object _eventPollingLock = new object();
         private Task? EventPollingTask { get; set; }
@@ -32,16 +31,17 @@ namespace SLGatewayClient
             _pollingHttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        public GatewayClient(string objectId, string gatewayUrl, string apiKey, ILogger<GatewayClient> logger)
+        public GatewayClient(string gatewayUrl, string apiKey, ILogger? logger)
         {
-            if (string.IsNullOrEmpty(objectId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(gatewayUrl))
+            _logger = logger;
+
+            if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(gatewayUrl))
             {
                 throw new ArgumentException("One or more arguments are not valid values");
             }
 
             ApiKey = apiKey;
             GatewayUrl = new Uri(gatewayUrl);
-            ObjectId = objectId;
         }
 
         public event EventHandler<ObjectEvent>? OnEventReceived;
@@ -118,10 +118,16 @@ namespace SLGatewayClient
             }
         }
 
-        public async Task<CommandEventResponse> SendCommandAsync()
+        public async Task<CommandEventResponse> SendCommandAsync(Guid objectId, CommandEvent commandEvent)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{GatewayUrl}api/events/push");
+            if (objectId == Guid.Empty)
+            {
+                throw new ArgumentException("Object id is invalid");
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{GatewayUrl}api/events/push/{objectId}");
             request.Headers.Authorization = new AuthenticationHeaderValue(BearerAuthenticationScheme, ApiKey);
+            request.Content = JsonContent.Create(commandEvent);
             var response = await _httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
@@ -130,14 +136,14 @@ namespace SLGatewayClient
                 return new CommandEventResponse
                 {
                     Data = data,
-                    HttpStatus = (int)response.StatusCode
+                    HttpStatusCode = (int)response.StatusCode
                 };
             }
 
             return new CommandEventResponse
             {
                 Data = null,
-                HttpStatus = (int)response.StatusCode
+                HttpStatusCode = (int)response.StatusCode
             };
         }
 

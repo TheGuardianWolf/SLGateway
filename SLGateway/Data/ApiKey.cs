@@ -1,4 +1,6 @@
 ﻿using AspNetCore.Authentication.ApiKey;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,5 +37,46 @@ namespace SLGateway.Data
         [JsonIgnore]
         public IReadOnlyCollection<Claim> Claims => Scopes?.Select(s => new Claim(s, bool.TrueString))?.ToList() ?? new List<Claim>();
         public IEnumerable<string> Scopes { get; set; } = new List<string>();
+    }
+
+    public class ApiKeyEntity
+    {
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
+        public string Key { get; set; }
+        public string Name { get; set; }
+        public DateTime CreatedUtc { get; set; }
+        public string UserId { get; set; }
+        public IEnumerable<string> Scopes { get; set; } = new List<string>();
+        public DateTime LastModifiedDate { get; set; }
+    }
+
+    public static class ApiKeyExtensions
+    {
+        public static ApiKey ToApiKey(this ApiKeyEntity entity)
+        {
+            return new ApiKey
+            {
+                CreatedUtc = entity.CreatedUtc,
+                Key = entity.Key,
+                Name = entity.Name,
+                Scopes = entity.Scopes,
+                UserId = entity.UserId,
+            };
+        }
+
+        public static ApiKeyEntity ToEntity(this ApiKey apiKey)
+        {
+            return new ApiKeyEntity
+            {
+                CreatedUtc = apiKey.CreatedUtc,
+                Key = apiKey.Key,
+                Name = apiKey.Name,
+                Scopes = apiKey.Scopes,
+                UserId = apiKey.UserId,
+                LastModifiedDate = DateTime.UtcNow
+            };
+        }
     }
 }

@@ -30,7 +30,7 @@ namespace SLGateway.Controllers
         [Authorize(ApiKeyAuthenticationPolicy.Object)]
         [Route("register/{id}")]
         [HttpPost]
-        public IActionResult Register(Guid id, ObjectRegistration reg)
+        public async Task<IActionResult> Register(Guid id, ObjectRegistration reg)
         {
             if (reg == null || string.IsNullOrWhiteSpace(reg.Token) || string.IsNullOrWhiteSpace(reg.Url))
             {
@@ -45,9 +45,9 @@ namespace SLGateway.Controllers
                 return BadRequest();
             }
 
-            if (!_objectRegistrationService.Register(new ObjectRegistration
+            if (!await _objectRegistrationService.Register(new ObjectRegistration
             {
-                Id = id,
+                ObjectId = id,
                 Url = reg.Url,
                 Token = reg.Token,
                 ApiKey = this.GetApiKey(),
@@ -66,15 +66,15 @@ namespace SLGateway.Controllers
         [Authorize(ApiKeyAuthenticationPolicy.Object)]
         [Route("register/{id}")]
         [HttpDelete]
-        public IActionResult Deregister(Guid id)
+        public async Task<IActionResult> Deregister(Guid id)
         {
             // Check object ownership
-            if (_objectRegistrationService.GetObject(id)?.ApiKey != this.GetApiKey())
+            if ((await _objectRegistrationService.GetObject(id))?.ApiKey != this.GetApiKey())
             {
                 return Forbid();
             }
 
-            if (!_objectRegistrationService.Deregister(id))
+            if (!await _objectRegistrationService.Deregister(id))
             {
                 _logger.LogWarning("Object {id} could not be deregistered", id);
                 return BadRequest();

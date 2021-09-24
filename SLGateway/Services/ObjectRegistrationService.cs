@@ -11,41 +11,52 @@ namespace SLGateway.Services
 {
     public interface IObjectRegistrationService
     {
-        public bool IsRegistered(Guid id);
-        ObjectRegistration GetObject(Guid id);
-        bool Register(ObjectRegistration reg);
-        bool Deregister(Guid id);
+        Task<bool> Deregister(Guid id);
+        Task<ObjectRegistration> GetObject(Guid id);
+        Task<bool> IsRegistered(Guid id);
+        Task<bool> Register(ObjectRegistration reg);
     }
 
     public class ObjectRegistrationService : IObjectRegistrationService
     {
         private readonly ILogger _logger;
         private readonly IObjectRegistrationRepository _objectRegistrationRepository;
+        private readonly IApiKeyRepository _apiKeyRepository;
 
-        public ObjectRegistrationService(ILogger<ObjectRegistrationService> logger, IObjectRegistrationRepository objectRegistrationRepository)
+        public ObjectRegistrationService(ILogger<ObjectRegistrationService> logger, IObjectRegistrationRepository objectRegistrationRepository, IApiKeyRepository apiKeyRepository)
         {
             _logger = logger;
             _objectRegistrationRepository = objectRegistrationRepository;
+            _apiKeyRepository = apiKeyRepository;
         }
 
-        public bool IsRegistered(Guid id)
+        public async Task<bool> IsRegistered(Guid id)
         {
-            return _objectRegistrationRepository.Get(id) is not null;
+            return await _objectRegistrationRepository.Get(id) is not null;
         }
 
-        public ObjectRegistration GetObject(Guid id)
+        public async Task<ObjectRegistration> GetObject(Guid id)
         {
-            return _objectRegistrationRepository.Get(id);
+            return await _objectRegistrationRepository.Get(id);
         }
 
-        public bool Register(ObjectRegistration reg)
+        public async Task<bool> Register(ObjectRegistration reg)
         {
-            return _objectRegistrationRepository.Update(reg);
+            return await _objectRegistrationRepository.Update(reg);
         }
 
-        public bool Deregister(Guid id)
+        public async Task<bool> Deregister(Guid id)
         {
-            return _objectRegistrationRepository.Delete(id);
+            var obj = await _objectRegistrationRepository.Get(id);
+            if (obj is null)
+            {
+                return false;
+            }
+
+            var apiKeyDeleteResult = await _apiKeyRepository.DeleteForOwner(obj.UserId);
+            var deregisterResult = await _objectRegistrationRepository.Delete(id);
+
+            return apiKeyDeleteResult && deregisterResult;
         }
     }
 }
