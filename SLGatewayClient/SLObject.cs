@@ -36,13 +36,13 @@ namespace SLGatewayClient
             }
         }
 
-        // Object commands
+        #region Object commands
         public async Task OwnerSayAsync(string text)
         {
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLOwnerSay,
-                Args = new dynamic[] { text }
+                Args = new object[] { text }
             });
 
             EnsureCommandSuccess(result);
@@ -53,7 +53,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLSay,
-                Args = new dynamic[] { channel, text }
+                Args = new object[] { channel, text }
             });
 
             EnsureCommandSuccess(result);
@@ -64,7 +64,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLSay,
-                Args = new dynamic[] { channel, text }
+                Args = new object[] { channel, text }
             });
 
             EnsureCommandSuccess(result);
@@ -75,7 +75,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLRegionSayTo,
-                Args = new dynamic[] { target, channel, text }
+                Args = new object[] { target, channel, text }
             });
 
             EnsureCommandSuccess(result);
@@ -86,7 +86,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLApplyRotationalImpulse,
-                Args = new dynamic[] { vector.X, vector.Y, vector.Z, local }
+                Args = new object[] { vector.X, vector.Y, vector.Z, local }
             });
 
             EnsureCommandSuccess(result);
@@ -99,18 +99,13 @@ namespace SLGatewayClient
                 return null;
             }
 
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLListen,
-                Args = new dynamic[] { channel, exactMatchLegacyName, filterId, exactMatchText }
+                Args = new object[] { channel, exactMatchLegacyName, filterId, exactMatchText }
             });
 
             EnsureCommandSuccess(result);
-
-            if (!(result.Data is int))
-            {
-                throw new InvalidReturnDataTypeException(typeof(int), result.Data);
-            }
 
             return new ObjectEventHandle
             {
@@ -124,7 +119,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLListenRemove,
-                Args = new dynamic[] { handle }
+                Args = new object[] { handle }
             });
 
             EnsureCommandSuccess(result);
@@ -135,7 +130,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLDie,
-                Args = new dynamic[] { }
+                Args = new object[] { }
             });
 
             EnsureCommandSuccess(result);
@@ -146,7 +141,7 @@ namespace SLGatewayClient
             var result = await _client.SendCommandAsync(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLEjectFromLand,
-                Args = new dynamic[] { agentId }
+                Args = new object[] { agentId }
             });
 
             EnsureCommandSuccess(result);
@@ -154,33 +149,28 @@ namespace SLGatewayClient
 
         public async Task<Guid> GetOwnerAsync()
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<Guid>(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLGetOwner,
-                Args = new dynamic[] { }
+                Args = new object[] { }
             });
 
             EnsureCommandSuccess(result);
 
-            return result.Data ?? Guid.Empty;
+            return result.Data;
         }
 
         public async Task<IEnumerable<Guid>> GetAgentListAsync(AgentListScope scope)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<IEnumerable<string>>(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLGetAgentList,
-                Args = new dynamic[] { (int)scope }
+                Args = new object[] { (int)scope }
             });
 
             EnsureCommandSuccess(result);
 
-            if (!(result.Data is IEnumerable<string>))
-            {
-                throw new InvalidReturnDataTypeException(typeof(int), result.Data);
-            }
-
-            IEnumerable<string> data = result.Data;
+            var data = result.Data;
 
             if (data.Any())
             {
@@ -201,20 +191,15 @@ namespace SLGatewayClient
 
         public async Task<AgentInfo> GetAgentInfoAsync(Guid agentId)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLGetAgentInfo,
-                Args = new dynamic[] { agentId }
+                Args = new object[] { agentId }
             });
 
             EnsureCommandSuccess(result);
 
-            if (!(result.Data is int))
-            {
-                throw new InvalidReturnDataTypeException(typeof(int), result.Data);
-            }
-
-            return result.Data ?? 0;
+            return (AgentInfo)result.Data;
         }
 
         public async Task<ObjectEventHandle?> RequestAgentDataAsync(Guid agentId, AgentData dataFlags)
@@ -224,18 +209,13 @@ namespace SLGatewayClient
                 return null;
             }
 
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLRequestAgentData,
-                Args = new dynamic[] { agentId, dataFlags }
+                Args = new object[] { agentId, dataFlags }
             });
 
             EnsureCommandSuccess(result);
-
-            if (!(result.Data is int))
-            {
-                throw new InvalidReturnDataTypeException(typeof(int), result.Data);
-            }
 
             return new ObjectEventHandle
             {
@@ -251,18 +231,13 @@ namespace SLGatewayClient
                 return null;
             }
 
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
             {
                 Code = CommandEventCode.LLRequestAgentData,
-                Args = new dynamic[] { agentId }
+                Args = new object[] { agentId }
             });
 
             EnsureCommandSuccess(result);
-
-            if (!(result.Data is int))
-            {
-                throw new InvalidReturnDataTypeException(typeof(int), result.Data);
-            }
 
             return new ObjectEventHandle
             {
@@ -270,6 +245,7 @@ namespace SLGatewayClient
                 Handle = result.Data
             };
         }
+        #endregion
 
         public void Dispose()
         {

@@ -26,12 +26,12 @@ namespace SLGatewayCore
     public class CommandEventInfo
     {
         public CommandEventCode Code { get; }
-        public IEnumerable<dynamic> Args { get; }
+        public IEnumerable<object> Args { get; }
         public Type[] ArgTypes { get; } = new Type[] { };
         public Type ReturnType { get; } = typeof(void);
         public ObjectEventCode? LinkedEventCode { get; } = null;
 
-        public CommandEventInfo(CommandEventCode evtCode, IEnumerable<dynamic> args)
+        public CommandEventInfo(CommandEventCode evtCode, IEnumerable<object> args)
         {
             Code = evtCode;
             Args = args;
@@ -99,17 +99,21 @@ namespace SLGatewayCore
     public class CommandEvent
     {
         public CommandEventCode Code { get; set; }
-        public IEnumerable<dynamic> Args { get; set; } = Enumerable.Empty<dynamic>();
+        public IEnumerable<object> Args { get; set; } = Enumerable.Empty<object>();
     }
 
     public class CommandEventResponse
     {
         public int HttpStatusCode { get; set; }
-        public dynamic? Data { get; set; }
         public bool IsSuccessStatusCode
         {
             get { return (HttpStatusCode >= 200) && (HttpStatusCode <= 299); }
         }
+    }
+
+    public class CommandEventResponse<T> : CommandEventResponse
+    {
+        public T? Data { get; set; }
     }
 
     public static class CommandEventExtenstions
@@ -129,10 +133,10 @@ namespace SLGatewayCore
     public class ObjectEventInfo
     {
         public ObjectEventCode Code { get; }
-        public IEnumerable<dynamic> Args { get; }
+        public IEnumerable<object> Args { get; }
         public Type[] ArgTypes { get; } = new Type[] { };
         public Type ReturnType { get; } = typeof(void);
-        public ObjectEventInfo(ObjectEventCode evtCode, IEnumerable<dynamic> args)
+        public ObjectEventInfo(ObjectEventCode evtCode, IEnumerable<object> args)
         {
             Code = evtCode;
             Args = args;
@@ -155,7 +159,7 @@ namespace SLGatewayCore
     public class ObjectEvent
     {
         public ObjectEventCode Code { get; set; }
-        public IEnumerable<dynamic> Args { get; set; } = Enumerable.Empty<dynamic>();
+        public IEnumerable<object> Args { get; set; } = Enumerable.Empty<object>();
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     }
 

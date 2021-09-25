@@ -70,7 +70,6 @@
                 Create API key
                 <ConditionalGroup When=@IsCreatingApiKey>
                     <div class="d-inline-block spinner-border spinner-border-sm text-light" role="status">
-                      <span class="sr-only">Loading...</span>
                     </div>
                 </ConditionalGroup>
             </button>
@@ -112,7 +111,6 @@
                                             Revoke
                                             <ConditionalGroup When=@(IsRevokingApiKey.Contains(apiKey.Key))>
                                                 <div class="d-inline-block spinner-border spinner-border-sm text-light" role="status">
-                                                  <span class="sr-only">Loading...</span>
                                                 </div>
                                             </ConditionalGroup>
                                         </button>
@@ -164,7 +162,7 @@
         if (UserId is not null) 
         {
             IsCreatingApiKey = true;
-            StateHasChanged();
+            _ = InvokeAsync(() => StateHasChanged());
 
             var trimmedName = FormKeyName.Trim();
             var apiKey = await apiKeyService.Create(trimmedName.Substring(0, Math.Min(50, trimmedName.Length)), UserId, FormScopes.ToList());
@@ -179,7 +177,7 @@
             }
 
             IsCreatingApiKey = false;
-            StateHasChanged();
+            _ = InvokeAsync(() => StateHasChanged());
         }
     }
 
@@ -189,7 +187,7 @@
         if (confirm)
         {
             IsRevokingApiKey.Add(key.Key);
-            StateHasChanged();
+            _ = InvokeAsync(() => StateHasChanged());
 
             if (await apiKeyService.Invalidate(key.Key))
             {
@@ -202,7 +200,7 @@
             }
 
             IsRevokingApiKey.Remove(key.Key);
-            StateHasChanged();
+            _ = InvokeAsync(() => StateHasChanged());
         }
     }
 
@@ -218,21 +216,25 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var authState = await authenticationStateTask;
-        var user = authState.User;
-
-        var userId = user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier && !string.IsNullOrWhiteSpace(x.Value))?.Value;
-        if (userId is not null)
+        Task.Run(async () =>
         {
-            UserId = userId;
+            logger.LogDebug("Api key page init started");
+            var authState = await authenticationStateTask;
+            var user = authState.User;
 
-            UserApiKeys = await apiKeyService.GetForUser(userId);
-        }
+            var userId = user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier && !string.IsNullOrWhiteSpace(x.Value))?.Value;
+            if (userId is not null)
+            {
+                UserId = userId;
 
-        IsLoadingApiKeys = false;
+                UserApiKeys = await apiKeyService.GetForUser(userId);
+            }
 
-        await base.OnInitializedAsync();
+            logger.LogDebug("Api key page init complete");
+            IsLoadingApiKeys = false;
+            _ = InvokeAsync(() => StateHasChanged());
+        });
     }
 }

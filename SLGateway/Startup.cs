@@ -25,6 +25,7 @@ using SLGateway.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication;
+using SLGateway.HostedServices;
 
 namespace SLGateway
 {
@@ -165,6 +166,8 @@ namespace SLGateway
             services.AddScoped<IEventsService, EventsService>();
             services.AddScoped<IObjectRegistrationService, ObjectRegistrationService>();
             services.AddScoped<IApiKeyService, ApiKeyService>();
+
+            services.AddHostedService<WarmupServicesOnStartupService>(sc => new WarmupServicesOnStartupService(services, sc));
 
             services.AddRazorPages(options =>
             {

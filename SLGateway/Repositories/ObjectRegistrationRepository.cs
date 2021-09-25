@@ -41,7 +41,9 @@ namespace SLGateway.Repositories
 
         public async Task<bool> Update(ObjectRegistration registration)
         {
-            var result = await _collection.UpdateOneAsync(c => c.ObjectId == registration.ObjectId, null, new UpdateOptions
+            var entity = registration.ToEntity();
+
+            var result = await _collection.ReplaceOneAsync(c => c.ObjectId == registration.ObjectId, entity, new ReplaceOptions
             {
                 IsUpsert = true
             });

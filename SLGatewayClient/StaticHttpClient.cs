@@ -18,7 +18,7 @@ namespace SLGatewayClient
 #endif
         }
 
-        public static HttpClient GetClient(string clientName = null)
+        public static HttpClient GetClient(string clientName = "")
         {
             if (string.IsNullOrEmpty(clientName))
             {

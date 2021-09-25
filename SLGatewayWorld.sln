@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLGatewayClient", "SLGatewa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLGatewayCore", "SLGatewayCore\SLGatewayCore.csproj", "{D397CE65-CC47-4355-9533-AAB3F6367BB7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLWatchtower", "SLWatchtower\SLWatchtower.csproj", "{3FA8A340-D31F-481C-9122-CB1BD557AF6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLGatewayClient.ManualTester", "SLGatewayClient.ManualTester\SLGatewayClient.ManualTester.csproj", "{4719414C-F982-418D-AB92-02BD8B4BFC4A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{D397CE65-CC47-4355-9533-AAB3F6367BB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D397CE65-CC47-4355-9533-AAB3F6367BB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D397CE65-CC47-4355-9533-AAB3F6367BB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FA8A340-D31F-481C-9122-CB1BD557AF6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FA8A340-D31F-481C-9122-CB1BD557AF6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FA8A340-D31F-481C-9122-CB1BD557AF6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FA8A340-D31F-481C-9122-CB1BD557AF6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4719414C-F982-418D-AB92-02BD8B4BFC4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4719414C-F982-418D-AB92-02BD8B4BFC4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4719414C-F982-418D-AB92-02BD8B4BFC4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4719414C-F982-418D-AB92-02BD8B4BFC4A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

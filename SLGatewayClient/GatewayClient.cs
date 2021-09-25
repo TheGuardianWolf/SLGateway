@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http.Json;
+using System.Collections.Generic;
 
 namespace SLGatewayClient
 {
@@ -57,6 +58,22 @@ namespace SLGatewayClient
                     using var request = new HttpRequestMessage(HttpMethod.Get, $"{GatewayUrl}api/events/longpoll");
                     request.Headers.Authorization = new AuthenticationHeaderValue(BearerAuthenticationScheme, ApiKey);
                     var response = await _pollingHttpClient.SendAsync(request);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var objectEvents = await response.Content.ReadFromJsonAsync<IEnumerable<ObjectEvent>>();
+                        if (objectEvents != null)
+                        {
+                            foreach (var objectEvent in objectEvents)
+                            {
+                                OnEventReceived?.Invoke(this, objectEvent);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger?.LogError("Event polling error with status: {statusCode}", response.StatusCode);
+                    }
 
                     if (EventPollingCancellationTokenSource.IsCancellationRequested)
                     {
@@ -118,7 +135,9 @@ namespace SLGatewayClient
             }
         }
 
-        public async Task<CommandEventResponse> SendCommandAsync(Guid objectId, CommandEvent commandEvent)
+        public async Task<CommandEventResponse> SendCommandAsync(Guid objectId, CommandEvent commandEvent) => await SendCommandAsync<object>(objectId, commandEvent);
+
+        public async Task<CommandEventResponse<T>> SendCommandAsync<T>(Guid objectId, CommandEvent commandEvent)
         {
             if (objectId == Guid.Empty)
             {
@@ -132,17 +151,16 @@ namespace SLGatewayClient
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<dynamic>();
-                return new CommandEventResponse
+                var eventResponse = await response.Content.ReadFromJsonAsync<CommandEventResponse<T>>();
+                if (eventResponse != null)
                 {
-                    Data = data,
-                    HttpStatusCode = (int)response.StatusCode
-                };
+                    return eventResponse;
+                }
             }
 
-            return new CommandEventResponse
+            return new CommandEventResponse<T>
             {
-                Data = null,
+                Data = default(T),
                 HttpStatusCode = (int)response.StatusCode
             };
         }

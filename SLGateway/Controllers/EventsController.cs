@@ -82,11 +82,10 @@ namespace SLGateway.Controllers
             if (response.Data is null)
             {
                 _logger.LogWarning("Pushing event {event} for object {objectId} failed with code: {code}", evt, objectId, response.HttpStatusCode);
-                return StatusCode(response.HttpStatusCode);
             }
 
             _logger.LogTrace("Pushing event {event} for object {objectId}", evt, objectId);
-            return Ok(response.Data);
+            return Ok(response);
         }
 
         [Authorize(ApiKeyAuthenticationPolicy.Object)]

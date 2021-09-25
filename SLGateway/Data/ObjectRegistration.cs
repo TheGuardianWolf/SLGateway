@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,8 @@ namespace SLGateway.Data
     public class ObjectRegistrationEntity
     {
         [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        [BsonIgnoreIfDefault]
         public string Id { get; set; }
         public Guid ObjectId { get; set; }
         public string Url { get; set; }
@@ -48,7 +51,7 @@ namespace SLGateway.Data
                 ApiKey = objectRegistration.ApiKey,
                 ObjectId = objectRegistration.ObjectId,
                 Url = objectRegistration.Url,
-                Token = objectRegistration.UserId,
+                Token = objectRegistration.Token,
                 UserId = objectRegistration.UserId,
                 LastModifiedDate = DateTime.UtcNow
             };

@@ -12,7 +12,7 @@ namespace SLGatewayClient
 
     public class InvalidReturnDataTypeException : Exception
     {
-        public InvalidReturnDataTypeException(Type expected, object data) : base($"Expected data of type {expected.FullName} but got type {data.GetType().FullName}") { }
+        public InvalidReturnDataTypeException(Type expected, object? data) : base($"Expected data of type {expected.FullName} but got type {data?.GetType().FullName}") { }
     }
 
     public class InvalidScopeException : Exception

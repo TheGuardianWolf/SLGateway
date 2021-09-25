@@ -1,4 +1,4 @@
-string API_KEY = "L2quvgihmJke7xYx6EVF";
+string API_KEY = "SLGAPI-Babavjnxb_oWjHzasurN";
 
 integer DEBUG = TRUE;
 float HEARTBEAT_INTERVAL_SEC = 900; // 1 hour
