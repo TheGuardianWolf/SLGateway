@@ -10,25 +10,43 @@ namespace SLGatewayClient
 {
     public class SLObject : IAsyncDisposable, IDisposable
     {
-        private GatewayClient _client;
+        private readonly GatewayClient _client;
 
-        private IEnumerable<ObjectEventHandle> _eventHandles = new List<ObjectEventHandle>();
+        private readonly IEnumerable<ObjectEventHandle> _eventHandles = new List<ObjectEventHandle>();
 
-        private Guid _objectId;
+        private readonly LongPollObjectClient _pollingClient;
+
+        public Guid ObjectId { get; }
 
         public bool EnableEvents
         {
-            get => _client.EventPolling;
-            set => _client.EventPolling = value;
+            get => _pollingClient.Enabled;
+            set => _pollingClient.Enabled = value;
         }
+
+        public EventHandler<ListenEvent>? OnListenEvent;
+        public EventHandler<DataserverEvent>? OnDataserverEvent;
 
         public SLObject(Guid objectId, GatewayClient client, ILogger? logger = null)
         {
-            _objectId = objectId;
+            ObjectId = objectId;
             _client = client;
+            _pollingClient = new LongPollObjectClient(objectId, client, logger);
+            _pollingClient.OnEventReceived += PollingClient_OnEventReceived;
         }
 
-        private void EnsureCommandSuccess(CommandEventResponse response)
+        private void PollingClient_OnEventReceived(object sender, ObjectEvent e)
+        {
+            switch (e.Code)
+            {
+                case ObjectEventCode.Listen:
+                    break;
+                case ObjectEventCode.Dataserver:
+                    break;
+            }
+        }
+
+        private void EnsureCommandSuccess(EventResponse response)
         {
             if (!response.IsSuccessStatusCode)
             {
@@ -39,7 +57,7 @@ namespace SLGatewayClient
         #region Object commands
         public async Task OwnerSayAsync(string text)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLOwnerSay,
                 Args = new object[] { text }
@@ -50,7 +68,7 @@ namespace SLGatewayClient
 
         public async Task SayAsync(string text, int channel = 0)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLSay,
                 Args = new object[] { channel, text }
@@ -61,7 +79,7 @@ namespace SLGatewayClient
 
         public async Task RegionSayAsync(string text, int channel = 0)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLSay,
                 Args = new object[] { channel, text }
@@ -72,7 +90,7 @@ namespace SLGatewayClient
 
         public async Task RegionSayToAsync(Guid target, string text, int channel = 0)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLRegionSayTo,
                 Args = new object[] { target, channel, text }
@@ -83,7 +101,7 @@ namespace SLGatewayClient
 
         public async Task ApplyRotationalImpulseAsync(IVector vector, bool local = true)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLApplyRotationalImpulse,
                 Args = new object[] { vector.X, vector.Y, vector.Z, local }
@@ -99,7 +117,7 @@ namespace SLGatewayClient
                 return null;
             }
 
-            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLListen,
                 Args = new object[] { channel, exactMatchLegacyName, filterId, exactMatchText }
@@ -116,7 +134,7 @@ namespace SLGatewayClient
 
         public async Task ListenRemoveAsync(int handle)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLListenRemove,
                 Args = new object[] { handle }
@@ -127,7 +145,7 @@ namespace SLGatewayClient
 
         public async Task DieAsync()
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLDie,
                 Args = new object[] { }
@@ -138,7 +156,7 @@ namespace SLGatewayClient
 
         public async Task EjectFromLandAsync(Guid agentId)
         {
-            var result = await _client.SendCommandAsync(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLEjectFromLand,
                 Args = new object[] { agentId }
@@ -149,7 +167,7 @@ namespace SLGatewayClient
 
         public async Task<Guid> GetOwnerAsync()
         {
-            var result = await _client.SendCommandAsync<Guid>(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<Guid>(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLGetOwner,
                 Args = new object[] { }
@@ -162,7 +180,7 @@ namespace SLGatewayClient
 
         public async Task<IEnumerable<Guid>> GetAgentListAsync(AgentListScope scope)
         {
-            var result = await _client.SendCommandAsync<IEnumerable<string>>(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<IEnumerable<string>>(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLGetAgentList,
                 Args = new object[] { (int)scope }
@@ -191,7 +209,7 @@ namespace SLGatewayClient
 
         public async Task<AgentInfo> GetAgentInfoAsync(Guid agentId)
         {
-            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLGetAgentInfo,
                 Args = new object[] { agentId }
@@ -209,7 +227,7 @@ namespace SLGatewayClient
                 return null;
             }
 
-            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLRequestAgentData,
                 Args = new object[] { agentId, dataFlags }
@@ -231,7 +249,7 @@ namespace SLGatewayClient
                 return null;
             }
 
-            var result = await _client.SendCommandAsync<int>(_objectId, new CommandEvent
+            var result = await _client.SendCommandAsync<int>(ObjectId, new CommandEvent
             {
                 Code = CommandEventCode.LLRequestAgentData,
                 Args = new object[] { agentId }
@@ -261,7 +279,7 @@ namespace SLGatewayClient
                     await ListenRemoveAsync(eventHandle.Handle);
                 }
             }
-            await _client.DisposeAsync();
+            await _pollingClient.DisposeAsync();
         }
     }
 

@@ -7,34 +7,30 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http.Json;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SLGatewayClient
 {
-    public class GatewayClient : IDisposable, IAsyncDisposable
+    public class GatewayClient
     {
         private const string BearerAuthenticationScheme = "Bearer";
 
-        private static HttpClient _pollingHttpClient = StaticHttpClient.GetClient("GatewayPollingClient");
+        private static HttpClient _pollingHttpClient = StaticHttpClient.GetClient("LongPollClient", (client) =>
+        {
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
 
         private static HttpClient _httpClient = StaticHttpClient.GetClient();
 
-        private ILogger? _logger;
-
+        private readonly ILogger? _logger;
         public string ApiKey { get; set; }
         public Uri GatewayUrl { get; set; }
-
-        private readonly object _eventPollingLock = new object();
-        private Task? EventPollingTask { get; set; }
-        private CancellationTokenSource? EventPollingCancellationTokenSource { get; set; }
-
-        static GatewayClient()
-        {
-            _pollingHttpClient.Timeout = Timeout.InfiniteTimeSpan;
-        }
 
         public GatewayClient(string gatewayUrl, string apiKey, ILogger? logger)
         {
             _logger = logger;
+
+            logger.LogTrace("Gateway client initialised with {url} and {apiKey}", gatewayUrl, apiKey);
 
             if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(gatewayUrl))
             {
@@ -45,99 +41,32 @@ namespace SLGatewayClient
             GatewayUrl = new Uri(gatewayUrl);
         }
 
-        public event EventHandler<ObjectEvent>? OnEventReceived;
-
-        private async Task EventPollingWorker()
+        public async Task<EventResponse<IEnumerable<ObjectEvent>>> LongPollAsync(Guid objectId)
         {
-            Exception? exception = null;
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{GatewayUrl}api/events/longpoll/{objectId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue(BearerAuthenticationScheme, ApiKey);
+            var response = await _pollingHttpClient.SendAsync(request);
 
-            if (EventPollingCancellationTokenSource != null)
+            if (response.IsSuccessStatusCode)
             {
-                try
+                var events = await response.Content.ReadFromJsonAsync<IEnumerable<ObjectEvent>>();
+                return new EventResponse<IEnumerable<ObjectEvent>>
                 {
-                    using var request = new HttpRequestMessage(HttpMethod.Get, $"{GatewayUrl}api/events/longpoll");
-                    request.Headers.Authorization = new AuthenticationHeaderValue(BearerAuthenticationScheme, ApiKey);
-                    var response = await _pollingHttpClient.SendAsync(request);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var objectEvents = await response.Content.ReadFromJsonAsync<IEnumerable<ObjectEvent>>();
-                        if (objectEvents != null)
-                        {
-                            foreach (var objectEvent in objectEvents)
-                            {
-                                OnEventReceived?.Invoke(this, objectEvent);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _logger?.LogError("Event polling error with status: {statusCode}", response.StatusCode);
-                    }
-
-                    if (EventPollingCancellationTokenSource.IsCancellationRequested)
-                    {
-                        return;
-                    }
-                }
-                catch (TaskCanceledException ex)
-                {
-                    exception = ex;
-                    _logger?.LogTrace(ex, "Event polling was cancelled");
-                }
-                catch (Exception ex)
-                {
-                    exception = ex;
-                    _logger?.LogTrace(ex, "Event polling was disrupted by exception");
-                }
-                finally
-                {
-                    if (exception == null || !(exception is TaskCanceledException))
-                    {
-                        EventPollingTask = Task.Run(EventPollingWorker, EventPollingCancellationTokenSource.Token);
-                    }
-                }
+                    HttpStatusCode = (int)response.StatusCode,
+                    Data = events
+                };
             }
+
+            return new EventResponse<IEnumerable<ObjectEvent>>
+            {
+                HttpStatusCode = (int)response.StatusCode,
+                Data = null
+            }; ;
         }
 
-        public bool EventPolling 
-        { 
-            get
-            {
-                lock (_eventPollingLock)
-                {
-                    return EventPollingTask != null;
-                }
-            }
-            set
-            {
-                lock (_eventPollingLock)
-                {
-                    if (value)
-                    {
-                        if (EventPollingTask == null)
-                        {
-                            EventPollingCancellationTokenSource = new CancellationTokenSource();
-                            EventPollingTask = Task.Run(EventPollingWorker, EventPollingCancellationTokenSource.Token);
-                        }
-                    }
-                    else
-                    {
-                        if (EventPollingTask != null)
-                        {
-                            Task.Run(StopEventPollingAsync);
+        public async Task<EventResponse> SendCommandAsync(Guid objectId, CommandEvent commandEvent) => await SendCommandAsync<object>(objectId, commandEvent);
 
-                            EventPollingTask = null;
-                            EventPollingCancellationTokenSource = null;
-                        }
-                    }
-                }
-            }
-        }
-
-        public async Task<CommandEventResponse> SendCommandAsync(Guid objectId, CommandEvent commandEvent) => await SendCommandAsync<object>(objectId, commandEvent);
-
-        public async Task<CommandEventResponse<T>> SendCommandAsync<T>(Guid objectId, CommandEvent commandEvent)
+        public async Task<EventResponse<T>> SendCommandAsync<T>(Guid objectId, CommandEvent commandEvent)
         {
             if (objectId == Guid.Empty)
             {
@@ -151,42 +80,18 @@ namespace SLGatewayClient
 
             if (response.IsSuccessStatusCode)
             {
-                var eventResponse = await response.Content.ReadFromJsonAsync<CommandEventResponse<T>>();
+                var eventResponse = await response.Content.ReadFromJsonAsync<EventResponse<T>>();
                 if (eventResponse != null)
                 {
                     return eventResponse;
                 }
             }
 
-            return new CommandEventResponse<T>
+            return new EventResponse<T>
             {
                 Data = default(T),
                 HttpStatusCode = (int)response.StatusCode
             };
-        }
-
-        public void Dispose()
-        {
-            DisposeAsync().AsTask().Wait();
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await StopEventPollingAsync();
-            EventPolling = false;
-        }
-
-        private async Task StopEventPollingAsync()
-        {
-            var task = EventPollingTask;
-            var tokenSource = EventPollingCancellationTokenSource;
-
-            tokenSource?.Cancel();
-            if (task != null)
-            {
-                await task;
-            }
-            tokenSource?.Dispose();
         }
     }
 }

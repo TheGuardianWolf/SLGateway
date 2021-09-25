@@ -102,7 +102,7 @@ namespace SLGatewayCore
         public IEnumerable<object> Args { get; set; } = Enumerable.Empty<object>();
     }
 
-    public class CommandEventResponse
+    public class EventResponse
     {
         public int HttpStatusCode { get; set; }
         public bool IsSuccessStatusCode
@@ -111,7 +111,7 @@ namespace SLGatewayCore
         }
     }
 
-    public class CommandEventResponse<T> : CommandEventResponse
+    public class EventResponse<T> : EventResponse
     {
         public T? Data { get; set; }
     }
@@ -169,5 +169,15 @@ namespace SLGatewayCore
         {
             return new ObjectEventInfo(evt.Code, evt.Args);
         }
+    }
+
+    public class DataserverEvent
+    {
+
+    }
+
+    public class ListenEvent
+    {
+
     }
 }

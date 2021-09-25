@@ -21,13 +21,11 @@ namespace SLGateway.Services
     {
         private readonly ILogger _logger;
         private readonly IObjectRegistrationRepository _objectRegistrationRepository;
-        private readonly IApiKeyRepository _apiKeyRepository;
 
-        public ObjectRegistrationService(ILogger<ObjectRegistrationService> logger, IObjectRegistrationRepository objectRegistrationRepository, IApiKeyRepository apiKeyRepository)
+        public ObjectRegistrationService(ILogger<ObjectRegistrationService> logger, IObjectRegistrationRepository objectRegistrationRepository)
         {
             _logger = logger;
             _objectRegistrationRepository = objectRegistrationRepository;
-            _apiKeyRepository = apiKeyRepository;
         }
 
         public async Task<bool> IsRegistered(Guid id)
@@ -53,10 +51,9 @@ namespace SLGateway.Services
                 return false;
             }
 
-            var apiKeyDeleteResult = await _apiKeyRepository.DeleteForOwner(obj.UserId);
             var deregisterResult = await _objectRegistrationRepository.Delete(id);
 
-            return apiKeyDeleteResult && deregisterResult;
+            return deregisterResult;
         }
     }
 }

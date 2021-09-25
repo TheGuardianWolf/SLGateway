@@ -22,7 +22,7 @@ namespace SLGateway.Services
     public interface IEventsService
     {
         Task<bool> AddEventForObject(Guid objectId, ObjectEvent evt);
-        Task<CommandEventResponse<object>> PushEventToObject(Guid objectId, CommandEvent evt);
+        Task<EventResponse<object>> PushEventToObject(Guid objectId, CommandEvent evt);
         Task<IEnumerable<ObjectEvent>> WaitForObjectEvents(Guid objectId, int waitForMs);
     }
 
@@ -88,7 +88,7 @@ namespace SLGateway.Services
             return _objectEventsRepository.Create(objectId, evt);
         }
 
-        public async Task<CommandEventResponse<object>> PushEventToObject(Guid objectId, CommandEvent evt)
+        public async Task<EventResponse<object>> PushEventToObject(Guid objectId, CommandEvent evt)
         {
             var obj = await _objectRegistrationService.GetObject(objectId);
             if (obj is null)
@@ -116,14 +116,14 @@ namespace SLGateway.Services
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<object>();
-                return new CommandEventResponse<object>
+                return new EventResponse<object>
                 {
                     Data = data,
                     HttpStatusCode = (int)response.StatusCode
                 };
             }
 
-            return new CommandEventResponse<object>
+            return new EventResponse<object>
             {
                 Data = null,
                 HttpStatusCode = (int)response.StatusCode

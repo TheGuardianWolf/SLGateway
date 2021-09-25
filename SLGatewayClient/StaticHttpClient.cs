@@ -18,7 +18,7 @@ namespace SLGatewayClient
 #endif
         }
 
-        public static HttpClient GetClient(string clientName = "")
+        public static HttpClient GetClient(string clientName = "", Action<HttpClient>? configure = null)
         {
             if (string.IsNullOrEmpty(clientName))
             {
@@ -30,6 +30,8 @@ namespace SLGatewayClient
                 {
                     _httpClientStore[clientName] = new HttpClient();
                 }
+
+                configure?.Invoke(_httpClientStore[clientName]);
 
                 return _httpClientStore[clientName];
             }

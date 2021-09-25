@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SLGateway.Data;
 using SLGateway.Services;
@@ -17,15 +18,19 @@ namespace SLGateway.Controllers
     [Route("api/[controller]")]
     public class EventsController : ControllerBase
     {
+        private readonly int _longPollTimeoutSec = 60;
         private readonly ILogger<EventsController> _logger;
         private readonly IEventsService _eventsService;
         private readonly IObjectRegistrationService _objectRegistrationService;
 
-        public EventsController(ILogger<EventsController> logger, IEventsService eventsService, IObjectRegistrationService objectRegistrationService)
+        public EventsController(IConfiguration configuration, ILogger<EventsController> logger, IEventsService eventsService, IObjectRegistrationService objectRegistrationService)
         {
+            _longPollTimeoutSec = configuration.GetValue("LongPollTimeoutSec", 60);
+
             _logger = logger;
             _eventsService = eventsService;
             _objectRegistrationService = objectRegistrationService;
+
         }
 
         [Authorize(ApiKeyAuthenticationPolicy.Client)]
@@ -47,7 +52,7 @@ namespace SLGateway.Controllers
                 return Forbid();
             }
 
-            var events = await _eventsService.WaitForObjectEvents(objectId, 60 * 1000);
+            var events = await _eventsService.WaitForObjectEvents(objectId, _longPollTimeoutSec * 1000);
             _logger.LogTrace("Collected {count} events for object {objectId}", events.Count(), objectId);
 
             return Ok(events);
