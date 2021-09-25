@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using SLGateway.Data;
 using SLGateway.Repositories;
-using SLGatewayCore;
+using SLGatewayCore.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

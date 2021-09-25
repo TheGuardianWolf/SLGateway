@@ -45,4 +45,15 @@ namespace SLGatewayClient
         CreationDate = 3,
         PaymentInfo = 8
     }
+
+    public enum ParcelDetails
+    {
+        Name = 0,
+        Description = 1,
+        OwnerKey = 2,
+        GroupKey = 3,
+        Area = 4,
+        ParcelKey = 5,
+        CanSeeAvatars = 6
+    }
 }

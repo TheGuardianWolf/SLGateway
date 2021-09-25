@@ -37,6 +37,7 @@ namespace SLGateway.Data
         [JsonIgnore]
         public IReadOnlyCollection<Claim> Claims => Scopes?.Select(s => new Claim(s, bool.TrueString))?.ToList() ?? new List<Claim>();
         public IEnumerable<string> Scopes { get; set; } = new List<string>();
+        public DateTime CreatedDate { get; set; }
     }
 
     public class ApiKeyEntity
@@ -47,10 +48,9 @@ namespace SLGateway.Data
         public string Id { get; set; }
         public string Key { get; set; }
         public string Name { get; set; }
-        public DateTime CreatedUtc { get; set; }
         public string UserId { get; set; }
         public IEnumerable<string> Scopes { get; set; } = new List<string>();
-        public DateTime LastModifiedDate { get; set; }
+        public DateTime CreatedDate { get; set; }
     }
 
     public static class ApiKeyExtensions
@@ -59,11 +59,11 @@ namespace SLGateway.Data
         {
             return new ApiKey
             {
-                CreatedUtc = entity.CreatedUtc,
                 Key = entity.Key,
                 Name = entity.Name,
                 Scopes = entity.Scopes,
                 UserId = entity.UserId,
+                CreatedDate = entity.CreatedDate,
             };
         }
 
@@ -71,12 +71,11 @@ namespace SLGateway.Data
         {
             return new ApiKeyEntity
             {
-                CreatedUtc = apiKey.CreatedUtc,
                 Key = apiKey.Key,
                 Name = apiKey.Name,
                 Scopes = apiKey.Scopes,
                 UserId = apiKey.UserId,
-                LastModifiedDate = DateTime.UtcNow
+                CreatedDate = apiKey.CreatedDate
             };
         }
     }

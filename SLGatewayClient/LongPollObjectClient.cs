@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using SLGatewayCore;
+using SLGatewayCore.Events;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;

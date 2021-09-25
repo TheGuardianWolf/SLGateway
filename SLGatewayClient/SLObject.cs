@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using SLGatewayCore;
+using SLGatewayCore.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,8 +24,14 @@ namespace SLGatewayClient
             set => _pollingClient.Enabled = value;
         }
 
+        public EventHandler<ObjectEvent>? OnEvent;
         public EventHandler<ListenEvent>? OnListenEvent;
         public EventHandler<DataserverEvent>? OnDataserverEvent;
+        
+        // TODO: Complete
+        public EventHandler<object>? OnTouchEvent;
+        public EventHandler<object>? OnLinkMessage;
+        public EventHandler<object>? OnSensor;
 
         public SLObject(Guid objectId, GatewayClient client, ILogger? logger = null)
         {
@@ -37,11 +43,34 @@ namespace SLGatewayClient
 
         private void PollingClient_OnEventReceived(object sender, ObjectEvent e)
         {
+            var argsList = e.Args.ToList();
             switch (e.Code)
             {
                 case ObjectEventCode.Listen:
+                    {
+                        var channel = (int)argsList[0];
+                        var name = (string)argsList[1];
+                        Guid.TryParse(argsList[2].ToString(), out var id);
+                        var message = (string)argsList[3];
+                        OnListenEvent?.BeginInvoke(this, new ListenEvent
+                        {
+                            Channel = channel,
+                            Id = id,
+                            Name = name,
+                            Message = message
+                        }, (r) => { }, new object());
+                    }
                     break;
                 case ObjectEventCode.Dataserver:
+                    {
+                        Guid.TryParse(argsList[0].ToString(), out var queryId);
+                        var data = (string)argsList[1];
+                        OnDataserverEvent?.BeginInvoke(this, new DataserverEvent
+                        {
+                            QueryId = queryId,
+                            Data = data
+                        }, (r) => { }, new object());
+                    }
                     break;
             }
         }

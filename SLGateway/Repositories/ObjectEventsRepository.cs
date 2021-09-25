@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SLGateway.Data;
-using SLGatewayCore;
+using SLGatewayCore.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

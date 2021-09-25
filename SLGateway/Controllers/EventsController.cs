@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SLGateway.Data;
 using SLGateway.Services;
-using SLGatewayCore;
+using SLGatewayCore.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
