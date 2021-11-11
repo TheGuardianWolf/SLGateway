@@ -1,0 +1,50 @@
+﻿@inject IParcelService parcelService
+@inject ILogger<ParcelCard> logger
+
+<ConditionalGroup When="ParcelRegistration is not null">
+	<div class="card">
+		<div class="card-body">
+			<h5 class="card-title">@ParcelRegistration.ParcelName</h5>
+			<p class="card-text">@ParcelRegistration.ParcelDescription</p>
+			<div class="text-end">
+				<button class="btn btn-outline-danger" @onclick="() => RemoveParcel(ParcelRegistration.UserId, ParcelRegistration.ObjectId)" disabled="@Removing">
+					Delete
+					<ConditionalGroup When="Removing">
+						<div class="d-inline-block spinner-border spinner-border-sm text-light" role="status">
+						</div>
+					</ConditionalGroup>
+				</button>
+				<ConditionalGroup When="!Removing">
+					<a href="/parcel/@ParcelRegistration.ObjectId" class="btn btn-primary">Manage</a>
+				</ConditionalGroup>
+			</div>
+		</div>
+		<div class="card-footer">
+			<small class="text-muted">Gateway SLO: @ParcelRegistration.ObjectId</small>
+		</div>
+	</div>
+</ConditionalGroup>
+
+@code {
+	[Parameter]
+	public ParcelRegistration ParcelRegistration { get; set; }
+
+	[CascadingParameter(Name = "UpdateUserRegistrationAction")]
+	private Action UpdateUserRegistration { get; set; }
+
+	private bool Removing { get; set; }
+
+	private async void RemoveParcel(string userId, Guid objectId)
+	{
+		Removing = true;
+		try
+		{
+			await parcelService.RemoveParcel(ParcelRegistration.UserId, ParcelRegistration.ObjectId);
+			UpdateUserRegistration?.Invoke();
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Exception when removing parcel {objectId} ({userId})", ParcelRegistration.ObjectId, ParcelRegistration.UserId);
+		}
+	}
+}

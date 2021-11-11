@@ -1,0 +1,74 @@
+﻿@using SLWatchtower.View.Shared.Alerts
+@inject IParcelService parcelService
+@inject IPreRenderFlag prerenderFlag
+
+<ConditionalGroup When="UsePageTitle">
+	<PageTitle>Parcel - @(Loading ? "Loading..." : ParcelRegistration?.ParcelName ?? "Invalid")</PageTitle>
+</ConditionalGroup>
+
+<AuthorizeView>
+	<Authorized>
+		<ConditionalGroup When="Loading">
+			<div class="text-center text-muted">
+				Retrieving data...
+				<div class="d-inline-block spinner-grow spinner-grow-sm" role="status">
+				</div>
+			</div>
+		</ConditionalGroup>
+		<ConditionalGroup When="!Loading">
+			<ConditionalGroup When="@(ParcelRegistration is null)">
+				<p>Invalid parcel selected</p>
+
+				<a href="/" class="btn btn-primary">Back to home</a>
+			</ConditionalGroup>
+			<ConditionalGroup When="@(ParcelRegistration is not null)">
+				<h3>Parcel - @ParcelRegistration.ParcelName</h3>
+
+				<p>@ParcelRegistration.ParcelDescription</p>
+
+				<p class="text-muted">Parcel was registered with SLO @ParcelRegistration.ObjectId</p>
+
+				<h5>Active Agents</h5>
+				<AgentList ObjectId="ObjectId" />
+			</ConditionalGroup>
+		</ConditionalGroup>
+	</Authorized>
+	<NotAuthorized>
+		<div class="row">
+			<p class="text-muted">You must login to view parcels.</p>
+		</div>
+	</NotAuthorized>
+</AuthorizeView>
+
+@code {
+	[Parameter]
+	public bool UsePageTitle { get; set; }
+
+	[Parameter]
+	public Guid ObjectId { get; set; }
+	
+	[CascadingParameter(Name = "UserId")]
+	public string UserId { get; set; }
+
+	private bool Loading { get; set; } = true;
+
+	private ParcelRegistration ParcelRegistration { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (!prerenderFlag.IsPreRendering)
+		{
+			if (UserId is not null)
+			{
+				var parcels = await parcelService.GetParcelsForUser(UserId);
+				var parcel = parcels.FirstOrDefault(x => x.ObjectId == ObjectId);
+
+				ParcelRegistration = parcel;
+			}
+
+			Loading = false;
+		}
+
+		await base.OnInitializedAsync();
+	}
+}

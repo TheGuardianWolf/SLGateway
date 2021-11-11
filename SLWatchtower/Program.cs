@@ -1,41 +1,55 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using SLWatchtower.Data;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-var builder = WebApplication.CreateBuilder(args);
-
-var Configuration = builder.Configuration;
-
-var auth0Domain = Configuration.GetValue<string>("Auth0:Domain");
-var auth0ClientId = Configuration.GetValue<string>("Auth0:ClientId");
-var auth0ClientSecret = Configuration.GetValue<string>("Auth0:ClientSecret");
-
-var connectionString = Configuration.GetConnectionString("Storage");
-var databaseName = Configuration.GetValue<string>("DatabaseName");
-
-// Add services to the container.
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<WeatherForecastService>();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+namespace SLWatchtower
 {
-    app.UseExceptionHandler("/Error");
+    public class Program
+    {
+        public static int Main(string[] args)
+        {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+                .CreateBootstrapLogger();
+
+            Log.Information("Starting up!");
+
+            try
+            {
+                CreateHostBuilder(args).Build().Run();
+
+                Log.Information("Stopped cleanly");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+
+                Log.Fatal(ex, "An unhandled exception occured during bootstrapping");
+                return 1;
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
+        }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .UseSerilog((context, services, configuration) => configuration
+                    .ReadFrom.Configuration(context.Configuration)
+                    .ReadFrom.Services(services)
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console()
+                    .MinimumLevel.Verbose())
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
+    }
 }
-else
-{
-    app.UseHttpsRedirection();
-}
-
-app.UseStaticFiles();
-
-app.UseRouting();
-
-
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
-
-app.Run();

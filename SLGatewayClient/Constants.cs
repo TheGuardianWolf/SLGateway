@@ -46,7 +46,7 @@ namespace SLGatewayClient
         PaymentInfo = 8
     }
 
-    public enum ParcelDetails
+    public enum ParcelDetailsParams
     {
         Name = 0,
         Description = 1,

@@ -1,0 +1,38 @@
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgdiplus libc6-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY ["SLWatchtower.heroku.sln", "."]
+COPY ["SLGatewayCore/SLGatewayCore.csproj", "./SLGatewayCore/SLGatewayCore.csproj"]
+COPY ["SLGatewayClient/SLGatewayClient.csproj", "./SLGatewayClient/SLGatewayClient.csproj"]
+COPY ["SLWatchtower/SLWatchtower.csproj", "./SLWatchtower/SLWatchtower.csproj"]
+
+RUN dotnet restore
+COPY . .
+
+WORKDIR "/src/SLGatewayCore"
+RUN dotnet build "SLGatewayCore.csproj" -c Release -o /app/build
+
+WORKDIR "/src/SLGatewayClient"
+RUN dotnet build "SLGatewayClient.csproj" -c Release -o /app/build
+
+WORKDIR "/src/SLWatchtower"
+RUN dotnet build "SLWatchtower.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "SLWatchtower.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+CMD ASPNETCORE_URLS=http://*:$PORT dotnet SLWatchtower.dll

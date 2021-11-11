@@ -1,0 +1,9 @@
+﻿.bg-lighthouse {
+    background-image: url("/img/lighthouse.jpg");
+    background-size: cover;
+}
+
+.hero {
+    margin: 0 -1.5rem;
+    margin-top: -1rem;
+}

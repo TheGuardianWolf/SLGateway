@@ -1,0 +1,80 @@
+﻿@using SLWatchtower.View.Shared.Alerts
+@using SLWatchtower.View.Shared.Timer
+@inject IPreRenderFlag prerenderFlag
+@inject IParcelService parcelService
+@inject ILogger<AgentList> logger
+
+<ConditionalGroup When="Loading">
+	<div class="text-center text-muted">
+		Getting agent list...
+		<div class="d-inline-block spinner-grow spinner-grow-sm" role="status">
+		</div>
+	</div>
+</ConditionalGroup>
+<ConditionalGroup When="!Loading">
+	<ErrorAlert Message="" />
+	<PeriodicTask OneShot="false" Period="10000" Action="() => _ = ReloadAgentList(true)" />
+	<ConditionalGroup When="!Agents.Any()">
+		<p>No agents active in parcel.</p>
+	</ConditionalGroup>
+	<ConditionalGroup When="Agents.Any()">
+		<div class="row">
+			@foreach (var agent in Agents)
+			{
+				<div class="col-lg-4 col-md-6 col-sm-12">
+					<AgentCard @key="agent" AgentKey="agent" />
+				</div>
+			}
+		</div>
+	</ConditionalGroup>
+</ConditionalGroup>
+
+@code {
+	[CascadingParameter(Name = "UserId")]
+	public string UserId { get; set; }
+
+	[Parameter]
+	public Guid ObjectId { get; set; }
+
+	private bool Loading { get; set; } = true;
+
+	private IEnumerable<Guid> Agents { get; set; } = new List<Guid>();
+
+	private string ErrorMessage { get; set; } = "";
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (!prerenderFlag.IsPreRendering)
+		{
+			await ReloadAgentList(false);
+
+			Loading = false;
+		}
+	}
+
+	private async Task ReloadAgentList(bool refresh)
+	{
+		if (refresh && Loading)
+		{
+			return;
+		}
+
+		if ((UserId is not null) && (ObjectId != Guid.Empty) && (string.IsNullOrEmpty(ErrorMessage)))
+		{
+			try
+			{
+				Agents = (await parcelService.GetParcelAgentList(UserId, ObjectId)).Where(x => x != Guid.Empty);
+
+				if (refresh)
+				{
+					await InvokeAsync(() => StateHasChanged());
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Error getting agent list for parcel {objectId} ({userId})", ObjectId, UserId);
+				ErrorMessage = "Error getting agent list, the parcel or SLO may be offline, please try again later.";
+			}
+		}
+	}
+}

@@ -1,0 +1,88 @@
+﻿@using SLWatchtower.View.Shared.Alerts
+@inject IParcelService parcelService
+@inject ILogger<AddParcelModalButton> logger
+
+<button class="flex-shrink-0 me-2 btn btn-primary" @onclick="() => Show = true" disabled="@Disabled">Add Parcel</button>
+<Modal Title="Add Parcel" Show="Show" ConfirmLabel="Add" OnCancel="() => CancelHandler()" OnConfirm="() => ConfirmHandler()" ErrorMessage="@ErrorMessage">
+	<p>Please enter the object id of your Gateway SLO, we'll take care of the rest.</p>
+	<p>
+		<input id="addParcelObjectIdField" class="form-control" placeholder="Enter object id..." aria-label="gateway slo id" @bind="ObjectId" />
+	</p>
+	<p>You can find this ID by resetting your Gateway SLO inworld and checking in Nearby Chat.</p>
+</Modal>
+
+@code {
+	[CascadingParameter(Name = "UserId")]
+	public string UserId { get; set; }
+
+	[Parameter]
+	public IEnumerable<ParcelRegistration> ExistingParcelRegistrations { get; set; } = new List<ParcelRegistration>();
+
+	[Parameter]
+	public Action OnAdd { get; set; }
+
+	[Parameter]
+	public bool Disabled { get; set; }
+
+	private string ObjectId { get; set; }
+
+	private bool Show { get; set; }
+
+	private string ErrorMessage { get; set; } = "";
+
+	private void CancelHandler()
+	{
+		Show = false;
+		ObjectId = "";
+		ErrorMessage = "";
+		StateHasChanged();
+	}
+
+	private async void ConfirmHandler()
+	{
+		if (UserId is not null)
+		{
+			if (!Guid.TryParse(ObjectId, out var guidObjectId))
+			{
+				ErrorMessage = "Not a valid object GUID.";
+				await InvokeAsync(() => StateHasChanged());
+				return;
+			}
+
+			if (ExistingParcelRegistrations.Any(x => x.ObjectId == guidObjectId))
+			{
+				ErrorMessage = "This object is registered to an existing parcel.";
+				await InvokeAsync(() => StateHasChanged());
+				return;
+			}
+
+			try
+			{
+				if (await parcelService.AddParcel(new ParcelRegistration
+				{
+					UserId = UserId,
+					ObjectId = guidObjectId
+				}))
+				{
+					Show = false;
+					ErrorMessage = "";
+					ObjectId = "";
+
+					OnAdd?.Invoke();
+
+					await InvokeAsync(() => StateHasChanged());
+				}
+				else
+				{
+					ErrorMessage = "This object could not be added, it most likely doesn't exist. Please check the id.";
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Could not add object for parcel: {objectId} ({userId})", ObjectId, UserId);
+				ErrorMessage = "An unknown error has occured, please try again.";	
+			}
+		}
+	}
+}

@@ -9,9 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLGatewayClient", "SLGatewa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLGatewayCore", "SLGatewayCore\SLGatewayCore.csproj", "{D397CE65-CC47-4355-9533-AAB3F6367BB7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLWatchtower", "SLWatchtower\SLWatchtower.csproj", "{3FA8A340-D31F-481C-9122-CB1BD557AF6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLWatchtower", "SLWatchtower\SLWatchtower.csproj", "{3FA8A340-D31F-481C-9122-CB1BD557AF6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLGatewayClient.ManualTester", "SLGatewayClient.ManualTester\SLGatewayClient.ManualTester.csproj", "{4719414C-F982-418D-AB92-02BD8B4BFC4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLGatewayClient.ManualTester", "SLGatewayClient.ManualTester\SLGatewayClient.ManualTester.csproj", "{4719414C-F982-418D-AB92-02BD8B4BFC4A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

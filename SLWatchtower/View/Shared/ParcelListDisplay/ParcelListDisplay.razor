@@ -1,0 +1,115 @@
+﻿@using System.Security.Claims
+@using SLWatchtower.View.Shared.Alerts
+
+@inject IUserRegistrationService userRegistrationService
+@inject IParcelService parcelService 
+@inject IPreRenderFlag prerenderFlag
+@inject ILogger<ParcelListDisplay> logger
+
+
+<AuthorizeView>
+	<Authorized>
+		<div class="row">
+			<div class="d-flex align-items-center searchbar">
+				<div><h3 class="mb-0">Registered Parcels</h3></div>
+				<div class="col-2 ms-3">
+					<input class="d-block form-control" type="text" placeholder="Search parcel name..." aria-label="parcel search">
+				</div>
+				<div class="d-flex align-items-center ms-auto">
+					<div class="me-2">
+						<GatewayStatus />
+					</div>
+					<div class="me-2">
+						<UpdateApiKeyModalButton OnUpdate="() => UpdateUserRegistration?.Invoke()" />
+					</div>
+					<div>
+						<AddParcelModalButton ExistingParcelRegistrations="ParcelRegistrations" OnAdd="() => _ = RefreshParcelRegistrations()" Disabled="UserRegistration is null" />
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row py-4">
+			<ErrorAlert Message="@ErrorMessage" />
+			<ConditionalGroup When="Loading">
+				<div class="text-center text-muted">
+					Retrieving parcels...
+					<div class="d-inline-block spinner-grow spinner-grow-sm" role="status">
+					</div>
+				</div>
+			</ConditionalGroup>
+			<ConditionalGroup When="!Loading">
+				<ConditionalGroup When="@(UserRegistration is null)">
+					<div class="text-center text-muted">
+						You have not entered a valid API key!
+					</div>
+				</ConditionalGroup>
+				<ConditionalGroup When="@(UserRegistration is not null && !ParcelRegistrations.Any())">
+					<div class="text-center text-muted">
+						No parcels added.
+					</div>
+				</ConditionalGroup>
+				<ConditionalGroup When="@(UserRegistration is not null && ParcelRegistrations.Any())">
+					<ParcelList ParcelRegistrations="ParcelRegistrations" />
+				</ConditionalGroup>
+			</ConditionalGroup>
+		</div>
+	</Authorized>
+	<NotAuthorized>
+		<div class="row">
+			<p class="text-muted">You must login to view parcels.</p>
+		</div>
+	</NotAuthorized>
+</AuthorizeView>
+
+@code {
+	[CascadingParameter(Name = "UserId")]
+	private string UserId { get; set; }
+
+	[CascadingParameter]
+	private UserRegistration UserRegistration { get; set; }
+
+	[CascadingParameter(Name = "UpdateUserRegistrationAction")]
+	private Action UpdateUserRegistration { get; set; }
+
+	private IEnumerable<ParcelRegistration> ParcelRegistrations { get; set; } = new List<ParcelRegistration>();
+
+	private bool Loading { get; set; } = true;
+
+	private string ErrorMessage { get; set; } = "";
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (!prerenderFlag.IsPreRendering)
+		{
+			await RefreshParcelRegistrations(false);
+
+			// Not sure why the display cycles
+			await Task.Delay(1000);
+
+			Loading = false;
+		}
+
+		await base.OnParametersSetAsync();
+	}
+
+	private async Task RefreshParcelRegistrations(bool stateChange = true)
+	{
+		if (UserId is not null && UserRegistration is not null)
+		{
+			try
+			{
+				ParcelRegistrations = await parcelService.GetParcelsForUser(UserId);
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Error getting parcels for user {userId}", UserId);
+				ErrorMessage = "Could not fetch registered parcels, you may need to refresh the page or try again later";
+			}
+
+			if (stateChange)
+			{
+				await InvokeAsync(() => StateHasChanged());
+			}
+		}
+	}
+}

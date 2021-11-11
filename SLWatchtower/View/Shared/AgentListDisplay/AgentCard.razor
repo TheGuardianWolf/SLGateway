@@ -1,0 +1,65 @@
+﻿@using SLGatewayClient.Data
+@using SLGatewayCore.Helpers
+@inject IAgentService agentService
+@inject IPreRenderFlag prerenderFlag
+@inject ILogger<AgentCard> logger
+
+<div class="card">
+	<ConditionalGroup When="!Loading">
+		<img src="@ImageDataUrl" class="card-img-top" alt="@(Agent.Nickname)'s profile image">
+		<div class="card-body">
+			<h5 class="card-title mb-0">@Agent.Nickname (@Agent.LegacyName)</h5>
+			<p>
+				<small class="text-muted">Account created: @Agent.CreationDate.ToString("d")</small>
+			</p>
+			<p class="card-text text-pre-line">
+				@Agent.Description
+			</p>
+		</div>
+		<div class="card-footer">
+			<small class="text-muted"><a href="@Agent.Link" rel="nofollow noreferrer" target="@Agent.LegacyName">Source</a></small>
+		</div>
+	</ConditionalGroup>
+	<ConditionalGroup When="Loading">
+		Loading...
+	</ConditionalGroup>
+</div>
+
+@code {
+	[Parameter]
+	public Guid AgentKey { get; set; }
+
+	private bool Loading { get; set; } = true;
+
+	private AgentWorldProfile Agent { get; set; }
+
+	private string ImageDataUrl { get; set; }
+
+	private bool Error { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (!prerenderFlag.IsPreRendering)
+		{
+			if (AgentKey != Guid.Empty)
+			{
+				try
+				{
+					Agent = await agentService.GetAgentProfile(AgentKey);
+
+					if (Agent is not null)
+					{
+						ImageDataUrl = ImageHelper.ConvertBytesToDataUrl(Agent.ProfileImage);
+					}
+				}
+				catch (Exception ex)
+				{
+					logger.LogError(ex, "Agent retrieval failed for {agentKey}", AgentKey);
+					Error = true;
+				}
+			}
+
+			Loading = false;
+		}
+	}
+}

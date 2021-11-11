@@ -1,0 +1,13 @@
+﻿<div class="row">
+	@foreach (var parcel in ParcelRegistrations)
+	{
+		<div class="col-lg-4 col-md-6 col-sm-12">
+			<ParcelCard ParcelRegistration="parcel" />
+		</div>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public IEnumerable<ParcelRegistration> ParcelRegistrations { get; set; }
+}

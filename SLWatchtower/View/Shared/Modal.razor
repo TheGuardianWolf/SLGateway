@@ -1,0 +1,53 @@
+﻿<div class="blazor-modal modal fade d-block @(Show ? "show" : "pe-none")" tabindex="-1" aria-modal="true" role="dialog" @onclick="() => CancelHandler()">
+    <ConditionalGroup When="Show">
+        <div class="modal-dialog modal-dialog-centered" @onclick:stopPropagation>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(Title)</h5>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick="() => CancelHandler()"></button>
+                </div>
+                <div class="modal-body">
+                    <ConditionalGroup When="@(!string.IsNullOrEmpty(ErrorMessage))">
+                        <div class="alert alert-danger">
+                            @ErrorMessage
+                        </div>
+                    </ConditionalGroup>
+                    @ChildContent
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => CancelHandler()">@(CancelLabel)</button>
+                    <button type="button" class="btn btn-primary" @onclick="() => ConfirmHandler()">@(ConfirmLabel)</button>
+                </div>
+            </div>
+        </div>
+    </ConditionalGroup>
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; }
+    [Parameter]
+    public string CancelLabel { get; set; } = "Cancel";
+    [Parameter]
+    public string ConfirmLabel { get; set; } = "Confirm";
+    [Parameter]
+	public bool Show { get; set; }
+    [Parameter]
+    public string ErrorMessage { get; set; } = "";
+    [Parameter]
+	public RenderFragment ChildContent { get; set; }
+    [Parameter]
+    public Action OnCancel { get; set; }
+    [Parameter]
+    public Action OnConfirm { get; set; }
+
+    private void CancelHandler()
+    {
+        OnCancel?.Invoke();
+    }
+
+    private void ConfirmHandler()
+    {
+        OnConfirm?.Invoke();
+    }
+}

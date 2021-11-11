@@ -40,6 +40,8 @@ namespace SLGateway.Services
                 var apiKey = await Get(key);
                 _logger.LogTrace("Api key requested: {key}, returned: {apiKey}", key, apiKey?.Key);
 
+                _ = _apiKeyRepository.RecordAccess(key);
+
                 return apiKey;
             }
             catch (Exception ex)
@@ -89,6 +91,7 @@ namespace SLGateway.Services
             {
                 Key = key,
                 CreatedUtc = DateTime.UtcNow,
+                LastAccessDate = DateTime.UtcNow,
                 Name = commonName,
                 UserId = username,
                 Scopes = acceptedScopes

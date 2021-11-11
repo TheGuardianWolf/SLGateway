@@ -1,0 +1,76 @@
+﻿@using SLWatchtower.Services
+@using SLWatchtower.View.Shared.Alerts
+@inject IUserRegistrationService userRegistrationService
+@inject ILogger<UpdateApiKeyModalButton> logger
+
+<button class="flex-shrink-0 btn btn-outline-primary" @onclick="() => ShowAndResetForm()">Update API Key</button>
+<Modal Title="Update API Key" Show="Show" ConfirmLabel="Update" OnCancel="() => CancelHandler()" OnConfirm="() => ConfirmHandler()">
+	<p>
+		<input class="form-control" aria-label="update api key" id="updateApiKeyField" placeholder="Enter API key..." @bind="ApiKey" />
+	</p>
+	<p>
+		API keys can be generated from the Second Life Gateway (<a target="slgateway" href="https://slgateway.herokuapp.com">https://slgateway.herokuapp.com</a>).
+	</p>
+	<p>
+		When generating the API key, ensure that you select the scope <code>slgateway/client:all</code>.
+	</p>
+</Modal>
+
+@code {
+	[Parameter]
+	public Action OnUpdate { get; set; }
+
+	[CascadingParameter(Name = "UserId")]
+	private string UserId { get; set; }
+
+	private bool Show { get; set; }
+
+	private string ApiKey { get; set; } = "";
+
+	private string ErrorMessage { get; set; } = "";
+
+	private void CancelHandler()
+	{
+		Show = false;
+		StateHasChanged();
+	}
+
+	private async void ConfirmHandler()
+	{
+		if (UserId is not null)
+		{
+			try
+			{			
+				if (await userRegistrationService.UpdateRegistration(new UserRegistration
+				{
+					UserId = UserId,
+					ApiKey = ApiKey.Trim()
+				}))
+				{
+					Show = false;			
+
+					OnUpdate?.Invoke();
+
+					await InvokeAsync(() => StateHasChanged());
+				}
+				else
+				{
+					ErrorMessage = "Error updating API key, please ensure it is valid.";
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Could not update API key for user {userId}", UserId);
+				ErrorMessage = "An unknown error occured, please try again.";
+			}
+		}
+
+		await InvokeAsync(() => StateHasChanged());
+	}
+
+	private void ShowAndResetForm()
+	{
+		ApiKey = "";
+		Show = true;
+	}
+}

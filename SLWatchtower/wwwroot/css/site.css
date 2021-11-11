@@ -4,6 +4,10 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.text-pre-line {
+    white-space: pre-line;
+}
+
 h1:focus {
     outline: none;
 }

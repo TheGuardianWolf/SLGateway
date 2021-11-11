@@ -12,8 +12,8 @@ namespace SLGateway.Repositories
     public interface IObjectRegistrationRepository
     {
         Task<bool> Delete(Guid objectId);
-        Task<ObjectRegistration> Get(Guid objectId);
-        Task<bool> Update(ObjectRegistration registration);
+        Task<ObjectRegistrationEntity> Get(Guid objectId);
+        Task<bool> Update(ObjectRegistrationEntity registration);
     }
 
     public class ObjectRegistrationRepository : IObjectRegistrationRepository
@@ -27,7 +27,7 @@ namespace SLGateway.Repositories
             _collection = mongoDataSource.Database.GetCollection<ObjectRegistrationEntity>("ObjectRegistrations");
         }
 
-        public async Task<ObjectRegistration> Get(Guid objectId)
+        public async Task<ObjectRegistrationEntity> Get(Guid objectId)
         {
             var cursor = await _collection.FindAsync(c => c.ObjectId == objectId);
             var entity = cursor.FirstOrDefault();
@@ -36,14 +36,12 @@ namespace SLGateway.Repositories
                 return null;
             }
 
-            return entity.ToObjectRegistration();
+            return entity;
         }
 
-        public async Task<bool> Update(ObjectRegistration registration)
+        public async Task<bool> Update(ObjectRegistrationEntity entity)
         {
-            var entity = registration.ToEntity();
-
-            var result = await _collection.ReplaceOneAsync(c => c.ObjectId == registration.ObjectId, entity, new ReplaceOptions
+            var result = await _collection.ReplaceOneAsync(c => c.ObjectId == entity.ObjectId, entity, new ReplaceOptions
             {
                 IsUpsert = true
             });

@@ -1,0 +1,27 @@
+﻿@page "/parcel/{objectId?}"
+@using SLWatchtower.View.Shared.AgentListDisplay
+@inject IParcelService parcelService
+
+<div class="container py-lg-4 py-2">
+    <ErrorBoundary>
+        <AgentListDisplay ObjectId="ObjectGuid" UsePageTitle />
+    </ErrorBoundary>
+</div>
+
+@code {
+    [CascadingParameter(Name = "UserId")]
+    public string UserId { get; set; }
+
+    [Parameter]
+    public string ObjectId { get; set; }
+
+    private Guid ObjectGuid { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Guid.TryParse(ObjectId, out var objectGuid);
+        ObjectGuid = objectGuid;
+
+        await base.OnInitializedAsync();
+    }
+}

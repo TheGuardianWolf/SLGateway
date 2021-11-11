@@ -1,0 +1,39 @@
+﻿@using System.Security.Claims
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center text-end ms-auto">
+            <form class="d-inline-block" method="post" action="auth/logout">
+                <button type="submit" class="btn btn-outline-light">Logout</button>
+            </form>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="text-end ms-auto">
+            <a class="btn btn-outline-light me-2" href="auth/login">Login</a>
+            <a class="btn btn-warning" href="auth/signup">Register</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    private string Name { get; set; } = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        var nameClaims = new string[] { "nickname", "name", ClaimTypes.Name, ClaimTypes.GivenName, ClaimTypes.Email, ClaimTypes.NameIdentifier };
+        var nameClaim = user.Claims.FirstOrDefault(x => nameClaims.Contains(x.Type) && !string.IsNullOrWhiteSpace(x.Value));
+        if (nameClaim is not null)
+        {
+            Name = nameClaim.Value;
+        }
+
+        await base.OnInitializedAsync();
+    }
+}

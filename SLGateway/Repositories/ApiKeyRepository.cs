@@ -12,6 +12,7 @@ namespace SLGateway.Repositories
     public interface IApiKeyRepository
     {
         Task<bool> Create(ApiKey key);
+        Task<bool> RecordAccess(string key);
         Task<bool> Delete(string key);
         Task<ApiKey> Get(string key);
         Task<IEnumerable<ApiKey>> GetKeysForOwner(string ownerName);
@@ -43,6 +44,18 @@ namespace SLGateway.Repositories
             var result = await cursor.FirstOrDefaultAsync();
             return result.ToApiKey();
         }
+
+        public async Task<bool> RecordAccess(string key)
+		{
+            var result = await _collection.UpdateOneAsync(k => k.Key == key, Builders<ApiKeyEntity>.Update.Set(k => k.LastAccessDate, DateTime.UtcNow));
+
+            if (result.IsAcknowledged)
+			{
+                _logger.LogTrace("Recorded key access {apiKey} at {time}", key, DateTime.UtcNow);
+            }
+
+            return result.IsAcknowledged;
+		}
 
         public async Task<bool> Create(ApiKey key)
         {

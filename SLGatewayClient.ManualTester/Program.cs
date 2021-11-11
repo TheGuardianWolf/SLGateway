@@ -41,16 +41,16 @@ public class HostedService : IHostedService
 
         //var obj = gateway.UseObject(new Guid("a66b64dd-f82b-555c-4bad-d53592863bdd"));
 
-        var gateway = new SLGateway(new SLGatewayConfiguration
-        {
-            ApiKey = "SLGAPI-Babavjnxb_oWjHzasurN",
-            GatewayUrl = "https://slgateway.herokuapp.com/",
-            Logger = _logger
-        });
+        //var gateway = new Gateway(new GatewayConfiguration
+        //{
+        //    ApiKey = "SLGAPI-Babavjnxb_oWjHzasurN",
+        //    GatewayUrl = "https://slgateway.herokuapp.com/",
+        //    Logger = _logger
+        //});
 
-        var obj = gateway.UseObject(new Guid("0876d5ba-1488-9e79-544b-10495adc2731"));
+        //var obj = gateway.UseObject(new Guid("0876d5ba-1488-9e79-544b-10495adc2731"));
 
-        obj.EnableEvents = true;
+        //obj.EnableEvents = true;
 
         //var handle = await obj.ListenAsync(0, "", Guid.Empty, "");
 
@@ -66,6 +66,9 @@ public class HostedService : IHostedService
         //var people = await obj.GetAgentListAsync(AgentListScope.Parcel);
 
         //Console.WriteLine(string.Join(" ", people));
+
+        var world = new SLWorld();
+        var agent = await world.GetAgentProfile(new Guid("878d0bdd-e2a1-46f4-9c4f-f7314bda7d4e"));
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

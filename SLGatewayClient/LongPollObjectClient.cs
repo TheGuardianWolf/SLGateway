@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +21,7 @@ namespace SLGatewayClient
         private Task? EventPollingTask { get; set; }
         private CancellationTokenSource? EventPollingCancellationTokenSource { get; set; }
 
-        public event EventHandler<ObjectEvent>? OnEventReceived;
+        public event EventHandler<ObjectEvent<JsonElement>>? OnEventReceived;
 
         public LongPollObjectClient(Guid objectId, GatewayClient client, ILogger? logger)
         {

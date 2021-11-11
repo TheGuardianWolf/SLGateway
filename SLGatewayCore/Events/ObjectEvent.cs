@@ -17,7 +17,11 @@ namespace SLGatewayCore.Events
     public class ObjectEvent
     {
         public ObjectEventCode Code { get; set; }
-        public IEnumerable<object> Args { get; set; } = Enumerable.Empty<object>();
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    }
+
+    public class ObjectEvent<T> : ObjectEvent
+    {
+        public IEnumerable<T> Args { get; set; } = Enumerable.Empty<T>();
     }
 }

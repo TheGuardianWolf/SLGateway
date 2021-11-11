@@ -1,0 +1,13 @@
+﻿@using SLWatchtower.View.Shared.ParcelListDisplay
+
+@page "/"
+
+<PageTitle>Watchtower</PageTitle>
+
+<WelcomeHero />
+
+<div class="container py-lg-4 py-2">
+    <ErrorBoundary>
+		<ParcelListDisplay />
+	</ErrorBoundary>
+</div>

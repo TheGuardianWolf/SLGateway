@@ -1,7 +1,7 @@
 string API_KEY = "SLGAPI-Babavjnxb_oWjHzasurN";
 
 integer DEBUG = TRUE;
-float HEARTBEAT_INTERVAL_SEC = 900; // 1 hour
+float HEARTBEAT_INTERVAL_SEC = 600; // 1 hour
 integer TOKEN_LENGTH = 12;
 
 integer registered = FALSE;
@@ -12,7 +12,7 @@ key urlRequestId;
 key eventRequestId;
 string objectUrl;
 string currentToken;
-string serverApiUrl = "http://pixelcollider.net/api";
+string serverApiUrl = "http://slgateway.herokuapp.com/api";
 
 debugSay(string text)
 {
@@ -203,6 +203,9 @@ integer CEC_LLGetAgentList = 10;
 integer CEC_LLGetAgentInfo = 11;
 integer CEC_LLRequestAgentData = 12;
 integer CEC_LLRequestDisplayName = 13;
+integer CEC_LLGetParcelDetails = 14;
+integer CEC_LLGetObjectDetails = 15;
+integer CEC_LLGetPos = 16;
 
 // Object Event Codes
 integer OEC_Listen = 0;
@@ -372,6 +375,41 @@ integer commandSwitch(key requestId, list args)
         key id = llList2Key(args, 1);
         key result = llRequestDisplayName(id);
         okPayload(requestId, jsonString(result));
+    }
+    else if (eventCode == CEC_LLGetParcelDetails)
+    {
+        if (argLength < 4)
+        {
+            return INVALID;
+        }
+
+        float posX = llList2Float(args, 1);
+        float posY = llList2Float(args, 2);
+        float posZ = llList2Float(args, 3);
+        vector pos = <posX, posY, posZ>;
+        list params = llDeleteSubList(args, 0, 3);
+
+        list result = llGetParcelDetails(pos, params);
+        okPayload(requestId, llList2Json(JSON_ARRAY, result));
+    }
+    // else if (eventCode == CEC_LLGetObjectDetails)
+    // {
+    //     if (argLength < 2)
+    //     {
+    //         return INVALID;
+    //     }
+
+    //     key id = llList2Key(args, 1);
+    //     list params = llDeleteSubList(args, 0, 1);
+
+    //     list result = llGetObjectDetails(id, params);
+    //     okPayload(requestId, llList2Json(JSON_ARRAY, result));
+    // }
+    else if (eventCode == CEC_LLGetPos)
+    {
+        vector pos = llGetPos();
+        list result = [pos.x, pos.y, pos.z];
+        okPayload(requestId, llList2Json(JSON_ARRAY, result));
     }
     else
     {

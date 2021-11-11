@@ -1,0 +1,65 @@
+﻿@using System.Security.Claims
+@inject ILogger<ValueProviders> logger
+@inject IUserRegistrationService userRegistrationService
+@inject IGatewayService gatewayService
+
+<CascadingValue Value="UserId" Name="UserId">
+<CascadingValue Value="UserRegistration">
+<CascadingValue Value="UpdateUserRegistration" Name="UpdateUserRegistrationAction">
+<CascadingValue Value="Gateway">
+    @ChildContent
+</CascadingValue>
+</CascadingValue>
+</CascadingValue>
+</CascadingValue>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+	[Parameter]
+	public RenderFragment ChildContent { get; set; }
+
+    private string UserId { get; set; }
+    private UserRegistration UserRegistration { get; set; }
+    private Action UpdateUserRegistration { get; set; }
+    private SLGatewayClient.Gateway Gateway { get; set; }
+
+    private async void _UpdateUserRegistration()
+	{
+        if (UserId is not null)
+        {
+            UserRegistration = await userRegistrationService.GetRegistration(UserId);
+
+            if (UserRegistration is not null)
+            {
+                Gateway = gatewayService.GetGatewayClient(UserId, UserRegistration.ApiKey);
+            }
+
+            await InvokeAsync(() => StateHasChanged());
+        }
+    }
+
+	protected override async Task OnInitializedAsync()
+	{
+        UpdateUserRegistration = _UpdateUserRegistration;
+
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        var userId = user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier && !string.IsNullOrWhiteSpace(x.Value))?.Value;
+        logger.LogDebug("Value providers got user id of {userId}", userId);
+
+        if (userId is not null)
+        {
+            UserId = userId;
+
+            UserRegistration = await userRegistrationService.GetRegistration(UserId);
+
+            if (UserRegistration is not null)
+            {
+                Gateway = gatewayService.GetGatewayClient(UserId, UserRegistration.ApiKey);
+            }
+        }
+	}
+}

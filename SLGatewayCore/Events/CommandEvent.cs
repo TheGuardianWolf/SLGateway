@@ -22,7 +22,8 @@ namespace SLGatewayCore.Events
         LLRequestAgentData = 12,
         LLRequestDisplayName = 13,
         LLGetParcelDetails = 14,
-        LLGetObjectDetails = 15
+        LLGetObjectDetails = 15,
+        LLGetPos = 16
     }
 
     /// <summary>

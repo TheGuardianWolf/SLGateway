@@ -1,0 +1,10 @@
+﻿<ConditionalGroup When="@(!string.IsNullOrEmpty(Message))">
+    <div class="alert alert-danger">
+        @Message
+    </div>
+</ConditionalGroup>
+
+@code {
+    [Parameter]
+    public string Message { get; set; }
+}

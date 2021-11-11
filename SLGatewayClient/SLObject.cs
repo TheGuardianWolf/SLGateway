@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
+using SLGatewayClient.Data;
 using SLGatewayCore.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SLGatewayClient
@@ -41,17 +43,17 @@ namespace SLGatewayClient
             _pollingClient.OnEventReceived += PollingClient_OnEventReceived;
         }
 
-        private void PollingClient_OnEventReceived(object sender, ObjectEvent e)
+        private void PollingClient_OnEventReceived(object sender, ObjectEvent<JsonElement> e)
         {
             var argsList = e.Args.ToList();
             switch (e.Code)
             {
                 case ObjectEventCode.Listen:
                     {
-                        var channel = (int)argsList[0];
-                        var name = (string)argsList[1];
-                        Guid.TryParse(argsList[2].ToString(), out var id);
-                        var message = (string)argsList[3];
+                        var channel = argsList[0].GetInt32();
+                        var name = argsList[1].GetString() ?? "";
+                        var id = argsList[2].GetGuid();
+                        var message = argsList[3].GetString() ?? "";
                         OnListenEvent?.BeginInvoke(this, new ListenEvent
                         {
                             Channel = channel,
@@ -63,8 +65,8 @@ namespace SLGatewayClient
                     break;
                 case ObjectEventCode.Dataserver:
                     {
-                        Guid.TryParse(argsList[0].ToString(), out var queryId);
-                        var data = (string)argsList[1];
+                        var queryId = argsList[0].GetGuid();
+                        var data = argsList[1].GetString() ?? "";
                         OnDataserverEvent?.BeginInvoke(this, new DataserverEvent
                         {
                             QueryId = queryId,
@@ -291,6 +293,90 @@ namespace SLGatewayClient
                 Code = ObjectEventCode.Dataserver,
                 Handle = result.Data
             };
+        }
+
+        public async Task<ParcelDetails> GetParcelDetailsAsync(Vector pos, IEnumerable<ParcelDetailsParams>? @params = null)
+        {
+            var sendParams = new List<ParcelDetailsParams>
+            {
+                ParcelDetailsParams.Name,
+                ParcelDetailsParams.Description,
+                ParcelDetailsParams.OwnerKey,
+                ParcelDetailsParams.GroupKey,
+                ParcelDetailsParams.Area,
+                ParcelDetailsParams.ParcelKey,
+                ParcelDetailsParams.CanSeeAvatars
+            };
+
+            if (@params != null)
+            {
+                sendParams = @params.ToList();
+            }
+
+            var argsList = new List<object>
+            {
+                pos.X,
+                pos.Y,
+                pos.Z
+            };
+            
+            foreach (var p in sendParams)
+            {
+                argsList.Add(p);
+            }
+
+            var result = await _client.SendCommandAsync<IEnumerable<JsonElement>>(ObjectId, new CommandEvent
+            {
+                Code = CommandEventCode.LLGetParcelDetails,
+                Args = argsList
+            });
+
+            EnsureCommandSuccess(result);
+
+            if (result.Data == null)
+            {
+                throw new InvalidReturnDataTypeException(typeof(IEnumerable<JsonElement>), result.Data);
+            }
+
+            if (result.Data.Count() != sendParams.Count)
+            {
+                throw new InvalidReturnDataLengthException(sendParams.Count, result.Data.Count());
+            }
+
+            var parcelDetails = ParcelDetails.FromParams(sendParams, result.Data);
+
+            return parcelDetails;
+        }
+
+        public Task<object> GetObjectDetailsAsync(Guid id, IEnumerable<object> @params)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<Vector> GetPosAsync()
+        {
+            var result = await _client.SendCommandAsync<IEnumerable<double>>(ObjectId, new CommandEvent
+            {
+                Code = CommandEventCode.LLGetPos,
+                Args = new object[] { }
+            });
+
+            EnsureCommandSuccess(result);
+
+            if (result.Data == null)
+            {
+                throw new InvalidReturnDataTypeException(typeof(IEnumerable<int>), result.Data);
+            }
+
+            if (result.Data.Count() != 3)
+            {
+                throw new InvalidReturnDataLengthException(3, result.Data.Count());
+            }
+
+            var dataList = result.Data.ToList();
+            var vector = new Vector(dataList[0], dataList[1], dataList[2]);
+
+            return vector;
         }
         #endregion
 

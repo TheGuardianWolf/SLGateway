@@ -35,12 +35,12 @@ namespace SLGateway.Services
 
         public async Task<ObjectRegistration> GetObject(Guid id)
         {
-            return await _objectRegistrationRepository.Get(id);
+            return (await _objectRegistrationRepository.Get(id))?.ToObjectRegistration();
         }
 
         public async Task<bool> Register(ObjectRegistration reg)
         {
-            return await _objectRegistrationRepository.Update(reg);
+            return await _objectRegistrationRepository.Update(reg.ToEntity());
         }
 
         public async Task<bool> Deregister(Guid id)

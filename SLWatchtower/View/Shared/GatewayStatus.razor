@@ -1,0 +1,60 @@
+﻿@inject IGatewayService gatewayService
+@inject IPreRenderFlag prerenderFlag
+@inject ILogger<GatewayStatus> logger
+
+<span>Gateway status: @(StatusText)</span>
+
+@code {
+	[CascadingParameter(Name = "UserId")]
+	public string UserId { get; set; }
+
+	[CascadingParameter]
+	public UserRegistration UserRegistration { get; set; }
+
+	[CascadingParameter]
+	public SLGatewayClient.Gateway Gateway { get; set; }
+
+	public string ApiKey => UserRegistration?.ApiKey;
+
+	private string StatusText { get; set; } = "Checking...";
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (!prerenderFlag.IsPreRendering)
+		{
+			if (UserId is not null && Gateway is not null)
+			{
+				StatusText = "Checking...";
+
+				try
+				{
+					var connection = await Gateway.CheckConnection(ApiKey);
+
+					if ((connection & SLGatewayClient.Data.GatewayStatus.InvalidApiKey) > 0)
+					{
+						StatusText = "API key error";
+					}
+					else if ((connection & SLGatewayClient.Data.GatewayStatus.Available) > 0)
+					{
+						StatusText = "Online";
+					}
+					else
+					{
+						StatusText = "Offline";
+					}
+				}
+				catch (Exception ex)
+				{
+					logger.LogError(ex, "Couldn't fetch gateway status");
+					StatusText = "Error";
+				}
+			}
+			else
+			{
+				StatusText = "Missing API key";
+			}
+		}
+
+		await base.OnParametersSetAsync();
+	}
+}

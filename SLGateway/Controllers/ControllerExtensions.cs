@@ -14,10 +14,5 @@ namespace SLGateway.Controllers
             var key = authHeader.Split(' ', StringSplitOptions.TrimEntries)[1];
             return key;
         }
-
-        public static string GetValue(this IEnumerable<Claim> claims, string claimType)
-        {
-            return claims.FirstOrDefault(x => x.Type == claimType)?.Value;
-        }
     }
 }

@@ -26,6 +26,9 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication;
 using SLGateway.HostedServices;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson;
 
 namespace SLGateway
 {
@@ -34,6 +37,10 @@ namespace SLGateway
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+#pragma warning disable CS0618 // Type or member is obsolete
+            BsonDefaults.GuidRepresentationMode = GuidRepresentationMode.V3;
+#pragma warning restore CS0618 // Type or member is obsolete
+            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
         }
 
         public IConfiguration Configuration { get; }
@@ -205,24 +212,24 @@ namespace SLGateway
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
+            // Configure the HTTP request pipeline.
+            if (!env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
+                app.UseExceptionHandler("/Error");
             }
             else
             {
                 app.UseHttpsRedirection();
             }
 
-            app.UseSwagger();
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SL Gateway v1"));
-
             app.UseSerilogRequestLogging();
 
             app.UseCookiePolicy();
 
             app.UseStaticFiles();
+
             app.UseRouting();
+
 
             app.UseAuthentication();
             app.UseAuthorization();
